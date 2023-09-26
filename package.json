@@ -1,13 +1,13 @@
 {
-  "name": "pancake-contracts",
+  "name": "klay-lottery-contracts",
   "version": "1.0.0",
-  "description": "Pancake contracts",
+  "description": "Klaytn Lottery contracts",
   "private": true,
   "workspaces": [
     "projects/**"
   ],
-  "repository": "https://github.com/pancakeswap/pancake-contracts",
-  "author": "PancakeSwap",
+  "repository": "https://github.com/khoa-klaytn/klay-lottery-contracts",
+  "author": "Khoa - Klaytn",
   "license": "MIT",
   "scripts": {
     "format:check": "prettier --check 'projects/**/*.{js,ts,sol}'",

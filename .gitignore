@@ -27,7 +27,6 @@ cache
 coverage.json
 
 @openzeppelin
-@pancakeswap
 bsc-library
 
 Flatten*
