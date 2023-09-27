@@ -31,16 +31,16 @@
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "klayLottery",
+    "outputs": [
       {
-        "internalType": "uint256",
-        "name": "_seed",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name": "getRandomNumber",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -84,19 +84,6 @@
   },
   {
     "inputs": [],
-    "name": "klayLottery",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "randomResult",
     "outputs": [
       {
@@ -113,6 +100,26 @@
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "accId",
+        "type": "uint64"
+      }
+    ],
+    "name": "requestRandomNumber",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "requestRandomNumberDirect",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {

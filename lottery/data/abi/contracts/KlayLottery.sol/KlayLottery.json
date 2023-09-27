@@ -3,11 +3,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_klayTokenAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_randomGeneratorAddress",
         "type": "address"
       }
@@ -121,7 +116,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "priceTicketInKlay",
+        "name": "priceTicket",
         "type": "uint256"
       },
       {
@@ -254,6 +249,10 @@
     "type": "event"
   },
   {
+    "stateMutability": "payable",
+    "type": "fallback"
+  },
+  {
     "inputs": [],
     "name": "MAX_LENGTH_LOTTERY",
     "outputs": [
@@ -320,20 +319,7 @@
     ],
     "name": "buyTickets",
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "klayToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -459,21 +445,29 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
         "name": "_lotteryId",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
       }
     ],
     "name": "injectFunds",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -481,7 +475,7 @@
     "name": "injectorAddress",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "address payable",
         "name": "",
         "type": "address"
       }
@@ -504,7 +498,7 @@
   },
   {
     "inputs": [],
-    "name": "maxPriceTicketInKlay",
+    "name": "maxPriceTicket",
     "outputs": [
       {
         "internalType": "uint256",
@@ -517,7 +511,7 @@
   },
   {
     "inputs": [],
-    "name": "minPriceTicketInKlay",
+    "name": "minPriceTicket",
     "outputs": [
       {
         "internalType": "uint256",
@@ -533,7 +527,7 @@
     "name": "operatorAddress",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "address payable",
         "name": "",
         "type": "address"
       }
@@ -622,12 +616,12 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_minPriceTicketInKlay",
+        "name": "_minPriceTicket",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "_maxPriceTicketInKlay",
+        "name": "_maxPriceTicket",
         "type": "uint256"
       }
     ],
@@ -668,7 +662,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_priceTicketInKlay",
+        "name": "_priceTicket",
         "type": "uint256"
       },
       {
@@ -710,7 +704,7 @@
     "name": "treasuryAddress",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "address payable",
         "name": "",
         "type": "address"
       }
@@ -760,7 +754,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "priceTicketInKlay",
+            "name": "priceTicket",
             "type": "uint256"
           },
           {
@@ -918,5 +912,9 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]
