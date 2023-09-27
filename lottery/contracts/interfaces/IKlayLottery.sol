@@ -8,7 +8,7 @@ interface IKlayLottery {
      * @param _ticketNumbers: array of ticket numbers between 1,000,000 and 1,999,999
      * @dev Callable by users
      */
-    function buyTickets(uint256 _lotteryId, uint32[] calldata _ticketNumbers) external;
+    function buyTickets(uint256 _lotteryId, uint32[] calldata _ticketNumbers) external payable;
 
     /**
      * @notice Claim a set of winning tickets for a lottery
@@ -37,10 +37,9 @@ interface IKlayLottery {
     /**
      * @notice Inject funds
      * @param _lotteryId: lottery id
-     * @param _amount: amount to inject in KLAY token
      * @dev Callable by operator
      */
-    function injectFunds(uint256 _lotteryId, uint256 _amount) external;
+    function injectFunds(uint256 _lotteryId) external payable;
 
     /**
      * @notice Start the lottery

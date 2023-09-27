@@ -16,9 +16,9 @@ import "./interfaces/IKlayLottery.sol";
 contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     using SafeERC20 for IERC20;
 
-    address public injectorAddress;
-    address public operatorAddress;
-    address public treasuryAddress;
+    address payable public operatorAddress;
+    address payable public injectorAddress;
+    address payable public treasuryAddress;
 
     uint256 public currentLotteryId;
     uint256 public currentTicketId;
@@ -35,7 +35,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public constant MAX_LENGTH_LOTTERY = 4 days + 5 minutes; // 4 days
     uint256 public constant MAX_TREASURY_FEE = 3000; // 30%
 
-    IERC20 public klayToken;
     IRandomNumberGenerator public randomGenerator;
 
     enum Status {
@@ -129,6 +128,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         _bracketCalculator[5] = 111111;
     }
 
+    receive() external payable {}
+
+    fallback() external payable {}
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+
     /**
      * @notice Buy tickets for the current lottery
      * @param _lotteryId: lotteryId
@@ -138,7 +145,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function buyTickets(
         uint256 _lotteryId,
         uint32[] calldata _ticketNumbers
-    ) external override notContract nonReentrant {
+    ) external payable override notContract nonReentrant {
         require(_ticketNumbers.length != 0, "No ticket specified");
         require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
 
@@ -151,6 +158,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             _lotteries[_lotteryId].priceTicket,
             _ticketNumbers.length
         );
+        require(amountKlayToTransfer <= msg.value, "Not enough KLAY");
 
         // Increment the total amount collected for the lottery round
         _lotteries[_lotteryId].amountCollectedInKlay += amountKlayToTransfer;
@@ -174,9 +182,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             // Increase lottery ticket number
             currentTicketId++;
         }
-
-        // Transfer klay tokens to this contract
-        address(msg.sender).transfer(address(this), amountKlayToTransfer);
 
         emit TicketsPurchase(msg.sender, _lotteryId, _ticketNumbers.length);
     }
@@ -230,7 +235,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         }
 
         // Transfer money to msg.sender
-        address(this).transfer(address(msg.sender), rewardInKlayToTransfer);
+        bool sent = payable(msg.sender).send(rewardInKlayToTransfer);
+        require(sent, "Failed to send KLAY");
 
         emit TicketsClaim(msg.sender, rewardInKlayToTransfer, _lotteryId, _ticketIds.length);
     }
@@ -328,7 +334,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         amountToWithdrawToTreasury += (_lotteries[_lotteryId].amountCollectedInKlay - amountToShareToWinners);
 
         // Transfer KLAY to treasury address
-        address(this).transfer(treasuryAddress, amountToWithdrawToTreasury);
+        bool sent = treasuryAddress.send(amountToWithdrawToTreasury);
+        require(sent, "Failed to send KLAY to treasury");
 
         emit LotteryNumberDrawn(currentLotteryId, finalNumber, numberAddressesInPreviousBracket);
     }
@@ -360,16 +367,15 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     /**
      * @notice Inject funds
      * @param _lotteryId: lottery id
-     * @param _amount: amount to inject in KLAY token
      * @dev Callable by owner or injector address
      */
-    function injectFunds(uint256 _lotteryId, uint256 _amount) external override onlyOwnerOrInjector {
+    function injectFunds(uint256 _lotteryId) external payable override onlyOwnerOrInjector {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
 
-        _lotteries[_lotteryId].amountCollectedInKlay += _amount;
-        address(msg.sender).transfer(address(this), _amount);
+        uint256 amount = msg.value;
+        _lotteries[_lotteryId].amountCollectedInKlay += amount;
 
-        emit LotteryInjection(_lotteryId, _amount);
+        emit LotteryInjection(_lotteryId, amount);
     }
 
     /**
@@ -492,9 +498,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require(_treasuryAddress != address(0), "Cannot be zero address");
         require(_injectorAddress != address(0), "Cannot be zero address");
 
-        operatorAddress = _operatorAddress;
-        treasuryAddress = _treasuryAddress;
-        injectorAddress = _injectorAddress;
+        operatorAddress = payable(_operatorAddress);
+        treasuryAddress = payable(_treasuryAddress);
+        injectorAddress = payable(_injectorAddress);
 
         emit NewOperatorAndTreasuryAndInjectorAddresses(_operatorAddress, _treasuryAddress, _injectorAddress);
     }
