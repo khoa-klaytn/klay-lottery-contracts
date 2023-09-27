@@ -2,52 +2,96 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@chainlink/contracts/src/v0.8/dev/VRFConsumerBase.sol";
-import "./interfaces/IRandomNumberGenerator.sol";
-import "./interfaces/IKlayLottery.sol";
+import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
+import {IVRFCoordinator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol";
+import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
+import {IRandomNumberGenerator} from "./interfaces/IRandomNumberGenerator.sol";
+import {IKlayLottery} from "./interfaces/IKlayLottery.sol";
 
 contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownable {
-    using SafeERC20 for IERC20;
+    IVRFCoordinator COORDINATOR;
+    bytes32 private keyHash;
+    uint32 public callbackGasLimit;
+    uint256 private latestLotteryId;
+    uint256 private latestRequestId;
+    uint32 private randomResult;
 
-    address public klayLottery;
-    bytes32 public keyHash;
-    bytes32 public latestRequestId;
-    uint32 public randomResult;
-    uint256 public fee;
-    uint256 public latestLotteryId;
-
-    /**
-     * @notice Constructor
-     * @dev RandomNumberGenerator must be deployed before the lottery.
-     * Once the lottery contract is deployed, setLotteryAddress must be called.
-     * https://docs.chain.link/docs/vrf-contracts/
-     * @param _vrfCoordinator: address of the VRF coordinator
-     * @param _linkToken: address of the LINK token
-     */
-    constructor(address _vrfCoordinator, address _linkToken) VRFConsumerBase(_vrfCoordinator, _linkToken) {
-        //
-    }
-
-    /**
-     * @notice Request randomness from a user-provided seed
-     * @param _seed: seed provided by the Klay lottery
-     */
-    function getRandomNumber(uint256 _seed) external override {
+    modifier onlyKlayLottery() {
         require(msg.sender == klayLottery, "Only KlayLottery");
-        require(keyHash != bytes32(0), "Must have valid key hash");
-        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK tokens");
+        _;
+    }
 
-        latestRequestId = requestRandomness(keyHash, fee, _seed);
+    constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
+        COORDINATOR = IVRFCoordinator(coordinator);
+        keyHash = _keyHash;
+        klayLottery = _klayLottery;
+        callbackGasLimit = _callbackGasLimit;
+    }
+
+    // ------------------------- //
+    // VRFConsumerBase functions //
+    // ------------------------- //
+
+    // Receive remaining payment from requestRandomWordsPayment
+    receive() external payable {}
+
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
+        // requestId should be checked if it matches the expected request
+        require(latestRequestId == requestId, "Wrong requestId");
+        // Generate random value between 1 and 50.
+        randomResult = uint32(1000000 + (randomWords[0] % 1000000));
+        latestLotteryId = IKlayLottery(klayLottery).viewCurrentLotteryId();
+    }
+
+    // ------------------------- //
+    // onlyKlayLottery functions //
+    // ------------------------- //
+
+    /**
+     * @notice Request random number using Permanent Account
+     * @param accId: Permanent Account ID
+     */
+    function requestRandomNumber(uint64 accId) external override onlyKlayLottery {
+        latestRequestId = COORDINATOR.requestRandomWords(keyHash, accId, callbackGasLimit, 1);
     }
 
     /**
-     * @notice Change the fee
-     * @param _fee: new fee (in LINK)
+     * @notice Request random number using Temporary Account
      */
-    function setFee(uint256 _fee) external onlyOwner {
-        fee = _fee;
+    function requestRandomNumberDirect() external payable override onlyKlayLottery {
+        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(
+            keyHash,
+            callbackGasLimit,
+            1,
+            payable(address(this))
+        );
+    }
+
+    /**
+     * @notice View latestLotteryId
+     */
+    function viewLatestLotteryId() external view override onlyKlayLottery returns (uint256) {
+        return latestLotteryId;
+    }
+
+    /**
+     * @notice View random result
+     */
+    function viewRandomResult() external view override onlyKlayLottery returns (uint32) {
+        return randomResult;
+    }
+
+    // -------------------- //
+    // onlyOwner functions //
+    // -------------------- //
+
+    function cancelRequest(uint256 requestId) external onlyOwner {
+        COORDINATOR.cancelRequest(requestId);
+    }
+
+    function withdrawTemporary(uint64 accId) external onlyOwner {
+        address prepaymentAddress = COORDINATOR.getPrepaymentAddress();
+        IPrepayment(prepaymentAddress).withdrawTemporary(accId, payable(msg.sender));
     }
 
     /**
@@ -67,35 +111,10 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
     }
 
     /**
-     * @notice It allows the admin to withdraw tokens sent to the contract
-     * @param _tokenAddress: the address of the token to withdraw
-     * @param _tokenAmount: the number of token amount to withdraw
-     * @dev Only callable by owner.
+     * @notice Set the callback gas limit
+     * @param _callbackGasLimit: new callback gas limit
      */
-    function withdrawTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
-        IERC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
-    }
-
-    /**
-     * @notice View latestLotteryId
-     */
-    function viewLatestLotteryId() external view override returns (uint256) {
-        return latestLotteryId;
-    }
-
-    /**
-     * @notice View random result
-     */
-    function viewRandomResult() external view override returns (uint32) {
-        return randomResult;
-    }
-
-    /**
-     * @notice Callback function used by ChainLink's VRF Coordinator
-     */
-    function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
-        require(latestRequestId == requestId, "Wrong requestId");
-        randomResult = uint32(1000000 + (randomness % 1000000));
-        latestLotteryId = IKlayLottery(klayLottery).viewCurrentLotteryId();
+    function setCallbackGasLimit(uint32 _callbackGasLimit) external onlyOwner {
+        callbackGasLimit = _callbackGasLimit;
     }
 }

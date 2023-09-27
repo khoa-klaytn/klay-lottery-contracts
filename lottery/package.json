@@ -16,5 +16,7 @@
   "devDependencies": {
     "@openzeppelin/contracts": "^4.2.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@bisonai/orakl-contracts": "1.0.0"
+  }
 }

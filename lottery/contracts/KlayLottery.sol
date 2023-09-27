@@ -25,8 +25,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
 
-    uint256 public maxPriceTicketInKlay = 50 ether;
-    uint256 public minPriceTicketInKlay = 0.005 ether;
+    uint256 public maxPriceTicket = 50 ether;
+    uint256 public minPriceTicket = 0.005 ether;
 
     uint256 public pendingInjectionNextLottery;
 
@@ -49,7 +49,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         Status status;
         uint256 startTime;
         uint256 endTime;
-        uint256 priceTicketInKlay;
+        uint256 priceTicket;
         uint256 discountDivisor;
         uint256[6] rewardsBreakdown; // 0: 1 matching number // 5: 6 matching numbers
         uint256 treasuryFee; // 500: 5% // 200: 2% // 50: 0.5%
@@ -102,7 +102,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 indexed lotteryId,
         uint256 startTime,
         uint256 endTime,
-        uint256 priceTicketInKlay,
+        uint256 priceTicket,
         uint256 firstTicketId,
         uint256 injectedAmount
     );
@@ -115,11 +115,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     /**
      * @notice Constructor
      * @dev RandomNumberGenerator must be deployed prior to this contract
-     * @param _klayTokenAddress: address of the KLAY token
      * @param _randomGeneratorAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
-    constructor(address _klayTokenAddress, address _randomGeneratorAddress) {
-        klayToken = IERC20(_klayTokenAddress);
+    constructor(address _randomGeneratorAddress) {
         randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
 
         // Initializes a mapping
@@ -150,12 +148,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         // Calculate number of KLAY to this contract
         uint256 amountKlayToTransfer = _calculateTotalPriceForBulkTickets(
             _lotteries[_lotteryId].discountDivisor,
-            _lotteries[_lotteryId].priceTicketInKlay,
+            _lotteries[_lotteryId].priceTicket,
             _ticketNumbers.length
         );
-
-        // Transfer klay tokens to this contract
-        klayToken.safeTransferFrom(address(msg.sender), address(this), amountKlayToTransfer);
 
         // Increment the total amount collected for the lottery round
         _lotteries[_lotteryId].amountCollectedInKlay += amountKlayToTransfer;
@@ -179,6 +174,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             // Increase lottery ticket number
             currentTicketId++;
         }
+
+        // Transfer klay tokens to this contract
+        address(msg.sender).transfer(address(this), amountKlayToTransfer);
 
         emit TicketsPurchase(msg.sender, _lotteryId, _ticketNumbers.length);
     }
@@ -232,7 +230,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         }
 
         // Transfer money to msg.sender
-        klayToken.safeTransfer(msg.sender, rewardInKlayToTransfer);
+        address(this).transfer(address(msg.sender), rewardInKlayToTransfer);
 
         emit TicketsClaim(msg.sender, rewardInKlayToTransfer, _lotteryId, _ticketIds.length);
     }
@@ -248,7 +246,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         _lotteries[_lotteryId].firstTicketIdNextLottery = currentTicketId;
 
         // Request a random number from the generator based on a seed
-        randomGenerator.getRandomNumber(uint256(keccak256(abi.encodePacked(_lotteryId, currentTicketId))));
+        randomGenerator.requestRandomNumberDirect();
 
         _lotteries[_lotteryId].status = Status.Close;
 
@@ -296,7 +294,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
                 (_numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber] - numberAddressesInPreviousBracket) !=
                 0
             ) {
-                // B. If rewards at this bracket are > 0, calculate, else, report the numberAddresses from previous bracket
+                // B. If rewards at this bracket are > 0, calculate, else,
+                // report the numberAddresses from previous bracket
                 if (_lotteries[_lotteryId].rewardsBreakdown[j] != 0) {
                     _lotteries[_lotteryId].klayPerBracket[j] =
                         ((_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) /
@@ -329,7 +328,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         amountToWithdrawToTreasury += (_lotteries[_lotteryId].amountCollectedInKlay - amountToShareToWinners);
 
         // Transfer KLAY to treasury address
-        klayToken.safeTransfer(treasuryAddress, amountToWithdrawToTreasury);
+        address(this).transfer(treasuryAddress, amountToWithdrawToTreasury);
 
         emit LotteryNumberDrawn(currentLotteryId, finalNumber, numberAddressesInPreviousBracket);
     }
@@ -348,9 +347,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         );
 
         // Request a random number from the generator based on a seed
-        IRandomNumberGenerator(_randomGeneratorAddress).getRandomNumber(
-            uint256(keccak256(abi.encodePacked(currentLotteryId, currentTicketId)))
-        );
+        IRandomNumberGenerator(_randomGeneratorAddress).requestRandomNumberDirect();
 
         // Calculate the finalNumber based on the randomResult generated by ChainLink's fallback
         IRandomNumberGenerator(_randomGeneratorAddress).viewRandomResult();
@@ -369,8 +366,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function injectFunds(uint256 _lotteryId, uint256 _amount) external override onlyOwnerOrInjector {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
 
-        klayToken.safeTransferFrom(address(msg.sender), address(this), _amount);
         _lotteries[_lotteryId].amountCollectedInKlay += _amount;
+        address(msg.sender).transfer(address(this), _amount);
 
         emit LotteryInjection(_lotteryId, _amount);
     }
@@ -379,14 +376,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _priceTicketInKlay: price of a ticket in KLAY
+     * @param _priceTicket: price of a ticket in KLAY
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
      * @param _treasuryFee: treasury fee (10,000 = 100%, 100 = 1%)
      */
     function startLottery(
         uint256 _endTime,
-        uint256 _priceTicketInKlay,
+        uint256 _priceTicket,
         uint256 _discountDivisor,
         uint256[6] calldata _rewardsBreakdown,
         uint256 _treasuryFee
@@ -401,10 +398,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             "Lottery length outside of range"
         );
 
-        require(
-            (_priceTicketInKlay >= minPriceTicketInKlay) && (_priceTicketInKlay <= maxPriceTicketInKlay),
-            "Outside of limits"
-        );
+        require((_priceTicket >= minPriceTicket) && (_priceTicket <= maxPriceTicket), "Outside of limits");
 
         require(_discountDivisor >= MIN_DISCOUNT_DIVISOR, "Discount divisor too low");
         require(_treasuryFee <= MAX_TREASURY_FEE, "Treasury fee too high");
@@ -425,7 +419,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             status: Status.Open,
             startTime: block.timestamp,
             endTime: _endTime,
-            priceTicketInKlay: _priceTicketInKlay,
+            priceTicket: _priceTicket,
             discountDivisor: _discountDivisor,
             rewardsBreakdown: _rewardsBreakdown,
             treasuryFee: _treasuryFee,
@@ -441,7 +435,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             currentLotteryId,
             block.timestamp,
             _endTime,
-            _priceTicketInKlay,
+            _priceTicket,
             currentTicketId,
             pendingInjectionNextLottery
         );
@@ -456,27 +450,21 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @dev Only callable by owner.
      */
     function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
-        require(_tokenAddress != address(klayToken), "Cannot be KLAY token");
-
         IERC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
-
         emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
     }
 
     /**
      * @notice Set KLAY price ticket upper/lower limit
      * @dev Only callable by owner
-     * @param _minPriceTicketInKlay: minimum price of a ticket in KLAY
-     * @param _maxPriceTicketInKlay: maximum price of a ticket in KLAY
+     * @param _minPriceTicket: minimum price of a ticket in KLAY
+     * @param _maxPriceTicket: maximum price of a ticket in KLAY
      */
-    function setMinAndMaxTicketPriceInKlay(
-        uint256 _minPriceTicketInKlay,
-        uint256 _maxPriceTicketInKlay
-    ) external onlyOwner {
-        require(_minPriceTicketInKlay <= _maxPriceTicketInKlay, "minPrice must be < maxPrice");
+    function setMinAndMaxTicketPriceInKlay(uint256 _minPriceTicket, uint256 _maxPriceTicket) external onlyOwner {
+        require(_minPriceTicket <= _maxPriceTicket, "minPrice must be < maxPrice");
 
-        minPriceTicketInKlay = _minPriceTicketInKlay;
-        maxPriceTicketInKlay = _maxPriceTicketInKlay;
+        minPriceTicket = _minPriceTicket;
+        maxPriceTicket = _maxPriceTicket;
     }
 
     /**

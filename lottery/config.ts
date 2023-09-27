@@ -1,17 +1,9 @@
 export default {
-  KlayToken: {
-    mainnet: "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82",
-    testnet: "0xa35062141fa33bca92ce69fed37d0e8908868aae",
-  },
-  LinkToken: {
-    mainnet: "0x404460C6A5EdE2D891e8297795264fDe62ADBB75",
-    testnet: "0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06",
-  },
   VRFCoordinator: {
     mainnet: "0x747973a5A2a4Ae1D3a8fDF5479f1514F65Db9C31",
     testnet: "0xfa605ca6dc9414e0f7fa322d3fd76535b33f7a4f",
   },
-  FeeInLink: {
+  CallbackGasLimit: {
     mainnet: "200000000000000000",
     testnet: "100000000000000000",
   },
@@ -22,16 +14,16 @@ export default {
   OperatorAddress: {
     // TODO: MUST BE UPDATED WITH ADDRESSES
     mainnet: "0x0000000000000000000000000000000000000000",
-    testnet: "0x0000000000000000000000000000000000000000",
+    testnet: "0xA04D4B4202406011777abd2a3497922193ced5C3",
   },
   TreasuryAddress: {
     // TODO: MUST BE UPDATED WITH ADDRESSES
     mainnet: "0x0000000000000000000000000000000000000000",
-    testnet: "0x0000000000000000000000000000000000000000",
+    testnet: "0xA04D4B4202406011777abd2a3497922193ced5C3",
   },
   InjectorAddress: {
     // TODO: MUST BE UPDATED WITH ADDRESSES
     mainnet: "0x0000000000000000000000000000000000000000",
-    testnet: "0x0000000000000000000000000000000000000000",
+    testnet: "0xA04D4B4202406011777abd2a3497922193ced5C3",
   },
 };
