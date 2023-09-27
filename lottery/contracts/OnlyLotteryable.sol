@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OnlyLotteryable is Ownable {
-    address public klayLottery;
+    address payable public klayLottery;
 
     modifier onlyKlayLottery() {
         require(msg.sender == klayLottery, "Only KlayLottery");
@@ -12,6 +12,6 @@ contract OnlyLotteryable is Ownable {
     }
 
     function setLotteryAddress(address _klayLottery) external onlyOwner {
-        klayLottery = _klayLottery;
+        klayLottery = payable(_klayLottery);
     }
 }
