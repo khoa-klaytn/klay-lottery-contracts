@@ -8,6 +8,7 @@ const main = async (withVRFOnTestnet = true) => {
 
   if (currentNetwork === "testnet") {
     let randomNumberGenerator;
+    let paymentToken;
 
     if (withVRFOnTestnet) {
       console.log("RandomNumberGenerator with VRF is deployed..");
@@ -20,6 +21,11 @@ const main = async (withVRFOnTestnet = true) => {
       );
       await randomNumberGenerator.deployed();
       console.log("RandomNumberGenerator deployed to:", randomNumberGenerator.address);
+
+      const PaymentToken = await ethers.getContractFactory("PaymentToken");
+      paymentToken = await PaymentToken.deploy();
+      await paymentToken.deployed();
+      console.log("PaymentToken deployed to:", paymentToken.address);
     }
     // else {
     //   console.log("RandomNumberGenerator without VRF is deployed..");
@@ -31,7 +37,7 @@ const main = async (withVRFOnTestnet = true) => {
     //   console.log("RandomNumberGenerator deployed to:", randomNumberGenerator.address);
     // }
 
-    const klayLottery = await KlayLottery.deploy(randomNumberGenerator.address);
+    const klayLottery = await KlayLottery.deploy(randomNumberGenerator.address, paymentToken.address);
 
     await klayLottery.deployed();
     console.log("KlayLottery deployed to:", klayLottery.address);
