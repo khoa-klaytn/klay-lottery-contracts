@@ -4,8 +4,8 @@ export default {
     testnet: "0xfa605ca6dc9414e0f7fa322d3fd76535b33f7a4f",
   },
   CallbackGasLimit: {
-    mainnet: "200000000000000000",
-    testnet: "100000000000000000",
+    mainnet: "2000000000",
+    testnet: "1000000000",
   },
   KeyHash: {
     mainnet: "0xaa77729d3466ca35ae8d28b3bbac7cc36a5031efdc430821c02bc31a238af445",

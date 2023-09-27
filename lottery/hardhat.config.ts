@@ -7,15 +7,15 @@ import "hardhat-contract-sizer";
 import "solidity-coverage";
 import "dotenv/config";
 
-const bscTestnet: NetworkUserConfig = {
-  url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-  chainId: 97,
+const testnet: NetworkUserConfig = {
+  url: "https://public-en-baobab.klaytn.net/",
+  chainId: 1001,
   accounts: [process.env.KEY_TESTNET!],
 };
 
-const bscMainnet: NetworkUserConfig = {
-  url: "https://bsc-dataseed.binance.org/",
-  chainId: 56,
+const mainnet: NetworkUserConfig = {
+  url: "https://public-en-cypress.klaytn.net/",
+  chainId: 8217,
   accounts: [process.env.KEY_MAINNET!],
 };
 
@@ -26,8 +26,8 @@ const config: HardhatUserConfig = {
       gas: 120000000,
       blockGasLimit: 0x1fffffffffffff,
     },
-    // testnet: bscTestnet,
-    // mainnet: bscMainnet,
+    testnet,
+    mainnet,
   },
   solidity: {
     version: "0.8.16",
