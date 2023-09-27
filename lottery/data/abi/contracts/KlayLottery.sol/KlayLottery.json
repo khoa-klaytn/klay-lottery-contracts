@@ -5,6 +5,11 @@
         "internalType": "address",
         "name": "_randomGeneratorAddress",
         "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_paymentTokenAddress",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -541,6 +546,19 @@
     "outputs": [
       {
         "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paymentToken",
+    "outputs": [
+      {
+        "internalType": "contract IPaymentToken",
         "name": "",
         "type": "address"
       }
