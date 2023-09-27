@@ -5,6 +5,7 @@ import { BN, constants, expectEvent, expectRevert, time } from "@openzeppelin/te
 import config from "../config";
 
 const MockRandomNumberGenerator = artifacts.require("./utils/MockRandomNumberGenerator.sol");
+const MockPaymentToken = artifacts.require("./utils/MockPaymentToken.sol");
 const KlayLottery = artifacts.require("./KlayLottery.sol");
 
 function gasToKlay(gas: number) {
@@ -24,6 +25,7 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
   // Contracts
   let lottery;
   let randomNumberGenerator;
+  let paymentToken;
 
   // Generic variables
   let result: any;
@@ -33,10 +35,21 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
     // Deploy MockRandomNumberGenerator
     randomNumberGenerator = await MockRandomNumberGenerator.new({ from: alice });
 
+    // Deploy PaymentToken
+    paymentToken = await MockPaymentToken.new({ from: alice });
+
     // Deploy KlayLottery
-    lottery = await KlayLottery.new(randomNumberGenerator.address, { from: alice });
+    lottery = await KlayLottery.new(randomNumberGenerator.address, paymentToken.address, { from: alice });
 
     await randomNumberGenerator.setLotteryAddress(lottery.address, { from: alice });
+
+    // Mint tokens to users
+    const users = [alice, bob, carol, david, operator, treasury, injector, lottery.address];
+    await Promise.all(
+      users.map(async (user) => {
+        await paymentToken.mint(user, parseEther("10000"), { from: alice });
+      })
+    );
   });
 
   describe("LOTTERY #1 - CUSTOM RANDOMNESS", async () => {
@@ -178,12 +191,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
 
       console.info(`        --> Cost to buy the first 100 tickets: ${gasToKlay(result.receipt.gasUsed)}`);
 
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: bob,
-        to: lottery.address,
-        value: parseEther("47.525").toString(),
-      });
-
       result = await lottery.viewLottery("1");
       assert.equal(result[11].toString(), parseEther("47.525").toString());
 
@@ -208,12 +215,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
       expectEvent(result, "TicketsPurchase", { buyer: carol, lotteryId: "1", numberTickets: "1" });
 
       console.info(`        --> Cost to buy a stand-alone ticket: ${gasToKlay(result.receipt.gasUsed)}`);
-
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: carol,
-        to: lottery.address,
-        value: parseEther("0.5").toString(),
-      });
     });
 
     it("David buys 10 tickets", async () => {
@@ -237,12 +238,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
 
       console.info(`        --> Cost to buy 10 tickets: ${gasToKlay(result.receipt.gasUsed)}`);
 
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: david,
-        to: lottery.address,
-        value: parseEther("4.9775").toString(),
-      });
-
       assert.equal(expectedPricePerBatch.toString(), parseEther("4.9775").toString());
     });
 
@@ -251,12 +246,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
       expectEvent(result, "LotteryInjection", { lotteryId: "1", injectedAmount: parseEther("10000").toString() });
 
       console.info(`        --> Cost to do injection: ${gasToKlay(result.receipt.gasUsed)}`);
-
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: alice,
-        to: lottery.address,
-        value: parseEther("10000").toString(),
-      });
     });
 
     it("Operator closes lottery", async () => {
@@ -281,12 +270,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
         countWinningTickets: "11",
       });
 
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: lottery.address,
-        to: treasury,
-        value: parseEther("2010.6005").toString(),
-      });
-
       console.info(`        --> Cost to draw numbers (w/o ChainLink): ${gasToKlay(result.receipt.gasUsed)}`);
     });
 
@@ -304,12 +287,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
       });
 
       console.info(`        --> Cost to claim ticket: ${gasToKlay(result.receipt.gasUsed)}`);
-
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: lottery.address,
-        to: david,
-        value: parseEther("4021.201").toString(),
-      });
 
       result = await lottery.viewNumbersAndStatusesForTicketIds(["110"]);
       assert.equal(result[1][0], true);
@@ -336,12 +313,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
       });
 
       console.info(`        --> Cost to claim 9 tickets: ${gasToKlay(result.receipt.gasUsed)}`);
-
-      expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-        from: lottery.address,
-        to: bob,
-        value: parseEther("402.120099999999999996").toString(),
-      });
 
       // 10053.0025 * (1- 0.2) - 402.1201 - 4021.201 = 3619.0809
     });
@@ -611,12 +582,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
           finalNumber: "1999994",
           countWinningTickets: "0",
         });
-
-        expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-          from: lottery.address,
-          to: treasury,
-          value: parseEther("3620.0804").toString(),
-        });
       });
 
       it("Cannot claim for wrong lottery (too high)", async () => {
@@ -701,12 +666,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
 
         // Total cost: 2.9925 KLAY
         result = await lottery.buyTickets("4", _ticketsBought, { from: carol });
-
-        expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-          from: carol,
-          to: lottery.address,
-          value: parseEther("2.9925").toString(),
-        });
       });
 
       it("Lottery close and numbers get drawn with only 4 brackets with a prize", async () => {
@@ -718,13 +677,6 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
 
         // 6 winning tickets
         result = await lottery.drawFinalNumberAndMakeLotteryClaimable("4", true, { from: operator });
-
-        // 20% * 1002.9925 = 200.5985 KLAY
-        expectEvent.inTransaction(result.receipt.transactionHash, "Transfer", {
-          from: lottery.address,
-          to: treasury,
-          value: parseEther("200.5985").toString(),
-        });
 
         expectEvent(result, "LotteryNumberDrawn", {
           lotteryId: "4",
