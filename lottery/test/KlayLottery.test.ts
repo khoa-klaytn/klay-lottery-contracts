@@ -242,7 +242,7 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
     });
 
     it("Owner does 10k KLAY injection", async () => {
-      result = await lottery.injectFunds("1", parseEther("10000"), { from: alice });
+      result = await lottery.injectFunds("1", { from: alice });
       expectEvent(result, "LotteryInjection", { lotteryId: "1", injectedAmount: parseEther("10000").toString() });
 
       console.info(`        --> Cost to do injection: ${gasToKlay(result.receipt.gasUsed)}`);
@@ -323,8 +323,8 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
       });
 
       it("Operator cannot inject funds in a lottery that is Open status", async () => {
-        await expectRevert(lottery.injectFunds("1", parseEther("10"), { from: alice }), "Lottery not open");
-        await expectRevert(lottery.injectFunds("2", parseEther("10"), { from: alice }), "Lottery not open");
+        await expectRevert(lottery.injectFunds("1", { from: alice }), "Lottery not open");
+        await expectRevert(lottery.injectFunds("2", { from: alice }), "Lottery not open");
       });
 
       it("Operator cannot draw numbers for previous lottery", async () => {
@@ -660,7 +660,7 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
           injectedAmount: "0",
         });
 
-        await lottery.injectFunds("4", parseEther("1000"), { from: injector });
+        await lottery.injectFunds("4", { from: injector });
 
         const _ticketsBought = ["1111118", "1222288", "1333888", "1448888", "1588888", "1888888"];
 
@@ -757,7 +757,7 @@ contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]
         "Ownable: caller is not the owner"
       );
 
-      await expectRevert(lottery.injectFunds("1", parseEther("10"), { from: operator }), "Not owner or injector");
+      await expectRevert(lottery.injectFunds("1", { from: operator }), "Not owner or injector");
 
       await expectRevert(
         lottery.setOperatorAndTreasuryAndInjectorAddresses(operator, treasury, injector, { from: operator }),
