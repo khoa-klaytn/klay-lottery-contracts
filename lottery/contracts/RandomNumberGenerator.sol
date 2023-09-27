@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IVRFCoordinator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
 import {IRandomNumberGenerator} from "./interfaces/IRandomNumberGenerator.sol";
 import {IKlayLottery} from "./interfaces/IKlayLottery.sol";
+import {OnlyLotteryable} from "./OnlyLotteryable.sol";
 
-contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownable {
+contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyLotteryable {
     IVRFCoordinator COORDINATOR;
     bytes32 private keyHash;
     uint32 public callbackGasLimit;
@@ -16,15 +16,9 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
     uint256 private latestRequestId;
     uint32 private randomResult;
 
-    modifier onlyKlayLottery() {
-        require(msg.sender == klayLottery, "Only KlayLottery");
-        _;
-    }
-
     constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
         COORDINATOR = IVRFCoordinator(coordinator);
         keyHash = _keyHash;
-        klayLottery = _klayLottery;
         callbackGasLimit = _callbackGasLimit;
     }
 
@@ -100,14 +94,6 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
      */
     function setKeyHash(bytes32 _keyHash) external onlyOwner {
         keyHash = _keyHash;
-    }
-
-    /**
-     * @notice Set the address for the KlayLottery
-     * @param _klayLottery: address of the Klay lottery
-     */
-    function setLotteryAddress(address _klayLottery) external onlyOwner {
-        klayLottery = _klayLottery;
     }
 
     /**

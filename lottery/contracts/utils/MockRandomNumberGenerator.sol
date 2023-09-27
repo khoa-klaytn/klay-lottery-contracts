@@ -1,12 +1,11 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {OnlyLotteryable} from "../OnlyLotteryable.sol";
 import "../interfaces/IRandomNumberGenerator.sol";
 import "../interfaces/IKlayLottery.sol";
 
-contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
-    address public klayLottery;
+contract MockRandomNumberGenerator is IRandomNumberGenerator, OnlyLotteryable {
     uint32 public randomResult;
     uint256 public nextRandomResult;
     uint256 public latestLotteryId;
@@ -19,14 +18,6 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
 
     /**
      * @notice Set the address for the KlayLottery
-     * @param _klayLottery: address of the Klay lottery
-     */
-    function setLotteryAddress(address _klayLottery) external onlyOwner {
-        klayLottery = _klayLottery;
-    }
-
-    /**
-     * @notice Set the address for the KlayLottery
      * @param _nextRandomResult: next random result
      */
     function setNextRandomResult(uint256 _nextRandomResult) external onlyOwner {
@@ -34,11 +25,17 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
     }
 
     /**
-     * @notice Request randomness from a user-provided seed
-     * @param _seed: seed provided by the Klay lottery
+     * @notice Request random number using Permanent Account
+     * @param accId: Permanent Account ID
      */
-    function getRandomNumber(uint256 _seed) external override {
-        require(msg.sender == klayLottery, "Only KlayLottery");
+    function requestRandomNumber(uint64 accId) external override onlyKlayLottery {
+        fulfillRandomness(0, nextRandomResult);
+    }
+
+    /**
+     * @notice Request random number using Temporary Account
+     */
+    function requestRandomNumberDirect() external payable override onlyKlayLottery {
         fulfillRandomness(0, nextRandomResult);
     }
 
