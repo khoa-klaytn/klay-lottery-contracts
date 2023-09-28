@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { contract, ethers } from "hardhat";
 import { Logger } from "ethers/lib/utils";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
@@ -16,10 +16,6 @@ Object.entries(accountsConfig).forEach(([name, privateKey]) => {
 
 type ContractName = keyof typeof contractsConfig;
 const contracts: Record<ContractName, ethers.Contract> = {} as any;
-const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, abi }]) => {
-  const abiJson = (await import(abi)).default;
-  contracts[name] = new ethers.Contract(address, abiJson, provider);
-});
 
 // ------------ //
 // Tx Functions //
@@ -70,18 +66,35 @@ async function waitResponse(_response: ethers.providers.TransactionResponse) {
 // ---- //
 // Test //
 // ---- //
-(async () => {
-  await Promise.all(contractPromises);
+contract("Lottery on Testnet", () => {
+  // ----- //
+  // Setup //
+  // ----- //
+  const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, abi }]) => {
+    const abiInterface = new ethers.utils.Interface((await import(abi)).default);
+    contracts[name] = new ethers.Contract(address, abiInterface, provider);
+  });
 
-  const setLotteryAddressResponse = await sendTransaction("alice", "RandomNumberGenerator", "setLotteryAddress", [
-    contracts.KlayLottery.address,
-  ]);
-  await waitResponse(setLotteryAddressResponse);
+  async function setLotteryAddress() {
+    const setLotteryAddressResponse = await sendTransaction("alice", "RandomNumberGenerator", "setLotteryAddress", [
+      contracts.KlayLottery.address,
+    ]);
+    await setLotteryAddressResponse.wait(1);
+  }
+  async function setRoles() {
+    const setRolesResponse = await sendTransaction(
+      "alice",
+      "KlayLottery",
+      "setOperatorAndTreasuryAndInjectorAddresses",
+      [wallets.operator.address, wallets.treasury.address, wallets.injector.address]
+    );
+    await setRolesResponse.wait(1);
+  }
 
-  const setRolesResponse = await sendTransaction("alice", "KlayLottery", "setOperatorAndTreasuryAndInjectorAddresses", [
-    wallets.operator.address,
-    wallets.treasury.address,
-    wallets.injector.address,
-  ]);
-  await waitResponse(setRolesResponse);
-})().catch(console.error);
+  before(async () => {
+    await Promise.all(contractPromises);
+
+    await setLotteryAddress();
+    await setRoles();
+  });
+});
