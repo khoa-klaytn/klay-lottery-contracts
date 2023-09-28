@@ -1,5 +1,5 @@
 import { contract, ethers } from "hardhat";
-import { Logger } from "ethers/lib/utils";
+import { Logger, parseEther } from "ethers/lib/utils";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
 
@@ -15,6 +15,7 @@ Object.entries(accountsConfig).forEach(([name, privateKey]) => {
 });
 
 type ContractName = keyof typeof contractsConfig;
+const abis: Record<ContractName, ethers.utils.Interface> = {} as any;
 const contracts: Record<ContractName, ethers.Contract> = {} as any;
 
 // ------------ //
@@ -63,15 +64,25 @@ async function waitResponse(_response: ethers.providers.TransactionResponse) {
   return [response, receipt] as const;
 }
 
-// ---- //
-// Test //
-// ---- //
 contract("Lottery on Testnet", () => {
+  // --------- //
+  // Constants //
+  // --------- //
+  const _priceTicket = parseEther("0.5");
+  const _discountDivisor = "2000";
+
+  const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
+  const _treasuryFee = "2000";
+  let endTime: BN;
+
+  const lotteryId = "1";
+
   // ----- //
   // Setup //
   // ----- //
   const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, abi }]) => {
     const abiInterface = new ethers.utils.Interface((await import(abi)).default);
+    abis[name] = abiInterface;
     contracts[name] = new ethers.Contract(address, abiInterface, provider);
   });
 
@@ -96,5 +107,34 @@ contract("Lottery on Testnet", () => {
 
     await setLotteryAddress();
     await setRoles();
+  });
+
+  // ---- //
+  // Test //
+  // ---- //
+  describe("Basic flow", () => {
+    const _lengthLottery = new BN("10");
+
+    it("Operator starts lottery", async () => {
+      endTime = new BN(await time.latest()).add(_lengthLottery);
+      const startResponse = await sendTransaction("operator", "KlayLottery", "startLottery", [
+        endTime.toString(),
+        _priceTicket.toString(),
+        _discountDivisor,
+        _rewardsBreakdown,
+        _treasuryFee,
+      ]);
+      const startReceipt = (await waitResponse(startResponse))[1];
+      const lotteryOpenLog = startReceipt.logs.find((log) => {
+        return log.topics.includes(abis.KlayLottery.getEventTopic("LotteryOpen"));
+      });
+      if (!lotteryOpenLog) {
+        throw new Error("LotteryOpen event not found");
+      }
+      const parsedLog = abis.KlayLottery.parseLog(lotteryOpenLog);
+      console.log(parsedLog);
+      // Sleep for _lengthLottery
+      await sleep(_lengthLottery.toNumber() * 1000);
+    });
   });
 });
