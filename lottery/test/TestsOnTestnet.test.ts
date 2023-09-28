@@ -1,3 +1,4 @@
+import { BN, time } from "@openzeppelin/test-helpers";
 import { ethers } from "ethers";
 import { Logger, parseEther } from "ethers/lib/utils";
 import { contract } from "hardhat";
@@ -63,6 +64,10 @@ async function waitResponse(_response: ethers.providers.TransactionResponse) {
     throw e;
   }
   return [response, receipt] as const;
+}
+
+function sleep(duration: number) {
+  return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
 contract("Lottery on Testnet", () => {
