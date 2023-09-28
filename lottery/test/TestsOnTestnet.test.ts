@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { Logger } from "ethers/lib/utils";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
 
@@ -29,8 +30,23 @@ async function sendTransaction(
   console.log(`Transaction sent: ${response.hash}`);
   return response as ethers.providers.TransactionResponse;
 }
-async function waitResponse(response: ethers.providers.TransactionResponse) {
-  await response.wait(1);
+async function waitResponse(_response: ethers.providers.TransactionResponse) {
+  let response = _response;
+  let receipt: ethers.providers.TransactionReceipt;
+  try {
+    receipt = await _response.wait(1);
+  } catch (e) {
+    if (e.code === Logger.errors.TRANSACTION_REPLACED) {
+      if (e.cancelled) {
+        return waitResponse(e.replacement);
+      }
+
+      response = e.replacement;
+      receipt = e.receipt;
+    }
+    throw e;
+  }
+  return [response, receipt] as const;
 }
 (async () => {
   await Promise.all(contractPromises);
