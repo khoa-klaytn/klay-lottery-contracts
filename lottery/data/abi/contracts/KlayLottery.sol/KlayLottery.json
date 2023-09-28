@@ -402,7 +402,7 @@
     ],
     "name": "closeLottery",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
