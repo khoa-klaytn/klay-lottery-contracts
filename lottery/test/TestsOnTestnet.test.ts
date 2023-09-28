@@ -14,7 +14,7 @@ type ContractName = keyof typeof contractsConfig;
 const contracts: Record<ContractName, ethers.Contract> = {} as any;
 const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, abi }]) => {
   const abiJson = (await import(abi)).default;
-  contracts[name] = new ethers.Contract(address, abiJson, wallets.alice);
+  contracts[name] = new ethers.Contract(address, abiJson, provider);
 });
 
 async function sendTransaction(
@@ -22,13 +22,11 @@ async function sendTransaction(
   contractName: ContractName,
   functionName: string,
   args: any[],
-  overrides?: ethers.providers.TransactionRequest
 ) {
-  const fn = contracts[contractName].populateTransaction[functionName];
-  const unsignedTx = await fn(...args);
-  const wallet = wallets[accountName];
-  const response = await wallet.sendTransaction({ ...unsignedTx, ...overrides });
-  return response;
+  const signer = contracts[contractName].connect(wallets[accountName]);
+  const fn = signer.functions[functionName];
+  const response = await fn(...args);
+  return response as ethers.providers.TransactionResponse;
 }
 async function logResponse(response: ethers.providers.TransactionResponse) {
   console.log(`Transaction signed and sent: ${response.hash}`);
