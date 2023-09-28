@@ -19,7 +19,7 @@ yarn-error.log*
 
 # configs
 .env
-accounts.config.json
+accounts.json
 
 # artifacts/cache/data
 artifacts
