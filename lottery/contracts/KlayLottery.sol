@@ -32,8 +32,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public pendingInjectionNextLottery;
 
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
-    uint256 public constant MIN_LENGTH_LOTTERY = 4 hours - 5 minutes; // 4 hours
-    uint256 public constant MAX_LENGTH_LOTTERY = 4 days + 5 minutes; // 4 days
+    uint256 public constant MIN_LENGTH_LOTTERY = 1 seconds;
+    uint256 public constant MAX_LENGTH_LOTTERY = 30 days + 10 minutes;
     uint256 public constant MAX_TREASURY_FEE = 3000; // 30%
 
     IRandomNumberGenerator public randomGenerator;
