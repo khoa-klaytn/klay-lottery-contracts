@@ -1,5 +1,14 @@
 {
-  "RandomNumberGenerator": "",
-  "PaymentToken": "",
-  "KlayLottery": ""
+  "RandomNumberGenerator": {
+    "address": "",
+    "abi": ""
+  },
+  "PaymentToken": {
+    "address": "",
+    "abi": ""
+  },
+  "KlayLottery": {
+    "address": "",
+    "abi": ""
+  }
 }
