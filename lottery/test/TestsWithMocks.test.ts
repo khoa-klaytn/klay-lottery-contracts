@@ -13,7 +13,7 @@ function gasToKlay(gas: number) {
   return num.toFixed(18);
 }
 
-contract("Lottery V2", ([alice, bob, carol, david, operator, treasury, injector]) => {
+contract("Lottery w/ Mocks", ([alice, bob, carol, david, operator, treasury, injector]) => {
   // VARIABLES
   let _lengthLottery = new BN("14400"); // 4h
   const _priceTicket = parseEther("0.5");
