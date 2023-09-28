@@ -1,5 +1,6 @@
-import { contract, ethers } from "hardhat";
+import { ethers } from "ethers";
 import { Logger, parseEther } from "ethers/lib/utils";
+import { contract } from "hardhat";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
 
