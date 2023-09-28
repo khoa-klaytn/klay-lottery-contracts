@@ -20,6 +20,7 @@ yarn-error.log*
 # configs
 .env
 accounts.json
+contracts.json
 
 # artifacts/cache/data
 artifacts
