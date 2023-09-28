@@ -53,7 +53,12 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
      * @notice Request random number using Temporary Account
      */
     function requestRandomNumberDirect() external payable override onlyKlayLottery {
-        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, klayLottery);
+        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(
+            keyHash,
+            callbackGasLimit,
+            1,
+            payable(address(this))
+        );
     }
 
     /**
