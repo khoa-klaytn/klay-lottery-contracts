@@ -26,13 +26,11 @@ async function sendTransaction(
   const signer = contracts[contractName].connect(wallets[accountName]);
   const fn = signer.functions[functionName];
   const response = await fn(...args);
+  console.log(`Transaction sent: ${response.hash}`);
   return response as ethers.providers.TransactionResponse;
 }
-async function logResponse(response: ethers.providers.TransactionResponse) {
-  console.log(`Transaction signed and sent: ${response.hash}`);
-  // wait for block
+async function waitResponse(response: ethers.providers.TransactionResponse) {
   await response.wait(1);
-  console.log(`Transaction has been mined at blocknumber: ${response.blockNumber}`);
 }
 (async () => {
   await Promise.all(contractPromises);
@@ -40,12 +38,12 @@ async function logResponse(response: ethers.providers.TransactionResponse) {
   const setLotteryAddressResponse = await sendTransaction("alice", "RandomNumberGenerator", "setLotteryAddress", [
     contracts.KlayLottery.address,
   ]);
-  await logResponse(setLotteryAddressResponse);
+  await waitResponse(setLotteryAddressResponse);
 
   const setRolesResponse = await sendTransaction("alice", "KlayLottery", "setOperatorAndTreasuryAndInjectorAddresses", [
     wallets.operator.address,
     wallets.treasury.address,
     wallets.injector.address,
   ]);
-  await logResponse(setRolesResponse);
+  await waitResponse(setRolesResponse);
 })().catch(console.error);
