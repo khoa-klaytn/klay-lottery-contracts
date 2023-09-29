@@ -32,7 +32,7 @@ async function sendTransaction(
   accountName: AccountName,
   contractName: ContractName,
   functionName: string,
-  args: any[],
+  args: any[]
 ) {
   const signer = contracts[contractName].connect(wallets[accountName]);
   const fn = signer.functions[functionName];
@@ -41,9 +41,9 @@ async function sendTransaction(
   return response as ethers.providers.TransactionResponse;
 }
 /**
- * Wait for a transaction to be mined, handle transaction replacement, & return (replaced) response and receipt
+ * Wait for a transaction to be mined, handle transaction replacement
  * @param _response Response to wait for
- * @returns 
+ * @returns (replaced) response & receipt
  */
 async function waitResponse(_response: ethers.providers.TransactionResponse) {
   let response = _response;
