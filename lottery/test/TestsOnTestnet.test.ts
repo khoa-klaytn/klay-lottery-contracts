@@ -2,6 +2,7 @@ import { BN, time } from "@openzeppelin/test-helpers";
 import { ethers } from "ethers";
 import { Logger, parseEther } from "ethers/lib/utils";
 import { contract } from "hardhat";
+import { expect } from "chai";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
 
@@ -81,7 +82,7 @@ contract("Lottery on Testnet", () => {
   const _treasuryFee = "2000";
   let endTime: BN;
 
-  const lotteryId = "1";
+  let lotteryId = 0;
 
   // ----- //
   // Setup //
@@ -139,6 +140,9 @@ contract("Lottery on Testnet", () => {
       }
       const parsedLog = abis.KlayLottery.parseLog(lotteryOpenLog);
       console.log(parsedLog);
+      const prevLotteryId = lotteryId;
+      lotteryId = parsedLog.args[0];
+      expect(lotteryId).to.equal(prevLotteryId + 1, "Lottery ID should increment by 1");
       // Sleep for _lengthLottery
       await sleep(_lengthLottery.toNumber() * 1000);
     });
