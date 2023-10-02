@@ -1,9 +1,10 @@
 import { BN, time } from "@openzeppelin/test-helpers";
-import ethers from "ethers";
-import { contract } from "hardhat";
+import "@nomicfoundation/hardhat-ethers";
+import { ethers } from "ethers";
 import { expect } from "chai";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
+import config from "../config";
 
 // ----- //
 // Setup //
@@ -17,12 +18,34 @@ Object.entries(accountsConfig).forEach(([name, privateKey]) => {
 });
 
 type ContractName = keyof typeof contractsConfig;
-const abis: Record<ContractName, ethers.Interface> = {} as any;
-const contracts: Record<ContractName, ethers.Contract> = {} as any;
+type ContractType = {
+  contract: ethers.Contract;
+  abi: ethers.Interface;
+  bytecode?: string;
+};
+const contracts: Record<ContractName, ContractType> = {} as any;
 
 // ------------ //
 // Tx Functions //
 // ------------ //
+async function deployContract(contractName: ContractName, args: any[] = []) {
+  const { abi, bytecode } = contracts[contractName];
+  const Contract = new ethers.ContractFactory(abi, bytecode!, wallets.alice);
+  const contract = await Contract.deploy(...args);
+  const receipt = await contract.deploymentTransaction()?.wait();
+  if (!receipt) {
+    throw new Error(`${contractName} receipt not found`);
+  }
+  const address = receipt.contractAddress;
+  if (!address) {
+    throw new Error(`${contractName} address not found`);
+  }
+  contractsConfig[contractName].address = address;
+  contracts[contractName].contract = new ethers.Contract(address, abi, provider);
+  console.log(`${contractName} deployed at ${address}`);
+  return address;
+}
+
 /**
  * Create a signer & use it to call a contract function
  * @param args Refer to contract ABI
@@ -34,7 +57,7 @@ async function sendTransaction(
   functionName: string,
   args: any[]
 ) {
-  const signer = contracts[contractName].connect(wallets[accountName]);
+  const signer = contracts[contractName].contract.connect(wallets[accountName]);
   const fn = signer[functionName];
   const response = await fn(...args);
   console.log(`Transaction sent: ${response.hash}`);
@@ -74,7 +97,7 @@ function sleep(duration: number) {
   return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
-contract("Lottery on Testnet", () => {
+describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
@@ -90,15 +113,22 @@ contract("Lottery on Testnet", () => {
   // ----- //
   // Setup //
   // ----- //
-  const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, abi }]) => {
-    const abiInterface = new ethers.Interface((await import(abi)).default);
-    abis[name] = abiInterface;
-    contracts[name] = new ethers.Contract(address, abiInterface, provider);
+  const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, artifact }]) => {
+    const artifactJson = (await import(artifact)).default;
+    const abiInterface = new ethers.Interface(artifactJson.abi);
+    contracts[name] = {
+      abi: abiInterface,
+    };
+    if (address) {
+      contracts[name].contract = new ethers.Contract(address, abiInterface, provider);
+    } else {
+      contracts[name].bytecode = artifactJson.bytecode;
+    }
   });
 
   async function setLotteryAddress() {
     const setLotteryAddressResponse = await sendTransaction("alice", "RandomNumberGenerator", "setLotteryAddress", [
-      contracts.KlayLottery.address,
+      contractsConfig.KlayLottery.address,
     ]);
     await setLotteryAddressResponse.wait(1);
   }
@@ -113,6 +143,20 @@ contract("Lottery on Testnet", () => {
   }
 
   before(async () => {
+    if (!contractsConfig.PaymentToken.address)
+      contractsConfig.PaymentToken.address = await deployContract("PaymentToken");
+    if (!contractsConfig.RandomNumberGenerator.address)
+      contractsConfig.RandomNumberGenerator.address = await deployContract("RandomNumberGenerator", [
+        config.VRFCoordinator,
+        config.KeyHash,
+        config.CallbackGasLimit,
+      ]);
+    if (!contractsConfig.KlayLottery.address)
+      contractsConfig.KlayLottery.address = await deployContract("KlayLottery", [
+        contractsConfig.RandomNumberGenerator.address,
+        contractsConfig.PaymentToken.address,
+      ]);
+
     await Promise.all(contractPromises);
 
     await setLotteryAddress();
@@ -136,12 +180,12 @@ contract("Lottery on Testnet", () => {
       ]);
       const startReceipt = (await waitResponse(startResponse))[1];
       const lotteryOpenLog = startReceipt.logs.find((log) => {
-        return log.topics.includes(abis.KlayLottery.getEventName("LotteryOpen"));
+        return log.topics.includes(contracts.KlayLottery.abi.getEventName("LotteryOpen"));
       });
       if (!lotteryOpenLog) {
         throw new Error("LotteryOpen event not found");
       }
-      const parsedLog = abis.KlayLottery.parseLog({
+      const parsedLog = contracts.KlayLottery.abi.parseLog({
         topics: Array.from(lotteryOpenLog.topics),
         data: lotteryOpenLog.data,
       });
