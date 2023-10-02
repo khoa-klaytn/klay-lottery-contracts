@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/IRandomNumberGenerator.sol";
 import "./interfaces/IKlayLottery.sol";
-import "./interfaces/IPaymentToken.sol";
 
 /** @title Klay Lottery.
  * @notice It is a contract for a lottery system using
@@ -37,7 +37,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public constant MAX_TREASURY_FEE = 3000; // 30%
 
     IRandomNumberGenerator public randomGenerator;
-    IPaymentToken public paymentToken;
 
     enum Status {
         Pending,
@@ -118,9 +117,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @dev RandomNumberGenerator must be deployed prior to this contract
      * @param _randomGeneratorAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
-    constructor(address _randomGeneratorAddress, address _paymentTokenAddress) {
+    constructor(address _randomGeneratorAddress) {
         randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
-        paymentToken = IPaymentToken(_paymentTokenAddress);
 
         // Initializes a mapping
         _bracketCalculator[0] = 1;
@@ -131,13 +129,21 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         _bracketCalculator[5] = 111111;
     }
 
+    function send(address recipient, uint256 amount) private returns (bool sent) {
+        require(
+            address(this).balance >= amount,
+            string.concat("Missing funds: ", Strings.toString(amount - address(this).balance))
+        );
+        sent = payable(recipient).send(amount);
+    }
+
+    function demand(uint256 sent, uint256 demanding) private pure {
+        require(sent >= demanding, string.concat("Sent ", Strings.toString(sent), " < ", Strings.toString(demanding)));
+    }
+
     receive() external payable {}
 
     fallback() external payable {}
-
-    function getBalance() external view returns (uint256) {
-        return paymentToken.getBalance(address(this));
-    }
 
     /**
      * @notice Buy tickets for the current lottery
@@ -161,7 +167,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             _lotteries[_lotteryId].priceTicket,
             _ticketNumbers.length
         );
-        paymentToken.demand{value: msg.value}(amountKlayToTransfer);
+        demand(msg.value, amountKlayToTransfer);
 
         // Increment the total amount collected for the lottery round
         _lotteries[_lotteryId].amountCollectedInKlay += amountKlayToTransfer;
@@ -238,7 +244,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         }
 
         // Transfer money to msg.sender
-        bool sent = paymentToken.send(msg.sender, rewardInKlayToTransfer);
+        bool sent = send(msg.sender, rewardInKlayToTransfer);
         require(sent, "Failed to send KLAY");
 
         emit TicketsClaim(msg.sender, rewardInKlayToTransfer, _lotteryId, _ticketIds.length);
@@ -337,7 +343,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         amountToWithdrawToTreasury += (_lotteries[_lotteryId].amountCollectedInKlay - amountToShareToWinners);
 
         // Transfer KLAY to treasury address
-        bool sent = paymentToken.send(treasuryAddress, amountToWithdrawToTreasury);
+        bool sent = send(treasuryAddress, amountToWithdrawToTreasury);
         require(sent, "Failed to send KLAY to treasury");
 
         emit LotteryNumberDrawn(currentLotteryId, finalNumber, numberAddressesInPreviousBracket);

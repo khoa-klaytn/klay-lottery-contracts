@@ -155,8 +155,6 @@ describe("Lottery on Testnet", () => {
   }
 
   before(async () => {
-    if (!contractsConfig.PaymentToken.address)
-      contractsConfig.PaymentToken.address = await deployContract("PaymentToken");
     if (!contractsConfig.RandomNumberGenerator.address)
       contractsConfig.RandomNumberGenerator.address = await deployContract("RandomNumberGenerator", [
         config.VRFCoordinator.testnet,
@@ -166,7 +164,6 @@ describe("Lottery on Testnet", () => {
     if (!contractsConfig.KlayLottery.address)
       contractsConfig.KlayLottery.address = await deployContract("KlayLottery", [
         contractsConfig.RandomNumberGenerator.address,
-        contractsConfig.PaymentToken.address,
       ]);
 
     await Promise.all(contractPromises);
