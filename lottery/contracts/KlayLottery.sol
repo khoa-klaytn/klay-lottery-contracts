@@ -161,7 +161,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             _lotteries[_lotteryId].priceTicket,
             _ticketNumbers.length
         );
-        paymentToken.demand(amountKlayToTransfer);
+        paymentToken.demand{value: msg.value}(amountKlayToTransfer);
 
         // Increment the total amount collected for the lottery round
         _lotteries[_lotteryId].amountCollectedInKlay += amountKlayToTransfer;
