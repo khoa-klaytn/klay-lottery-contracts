@@ -1,6 +1,6 @@
-import { BN, time } from "@openzeppelin/test-helpers";
 import "@nomicfoundation/hardhat-ethers";
 import { ethers } from "ethers";
+import { time } from "@openzeppelin/test-helpers";
 import { expect } from "chai";
 import accountsConfig from "./accounts.json";
 import contractsConfig from "./contracts.json";
@@ -9,7 +9,12 @@ import config from "../config";
 // ----- //
 // Setup //
 // ----- //
-const provider = new ethers.JsonRpcProvider("https://public-en-baobab.klaytn.net/");
+const providerUrl = "https://public-en-baobab.klaytn.net/";
+require("@openzeppelin/test-helpers/configure")({
+  provider: providerUrl,
+});
+
+const provider = new ethers.JsonRpcProvider(providerUrl);
 
 type AccountName = keyof typeof accountsConfig;
 const wallets: Record<AccountName, ethers.Wallet> = {} as any;
@@ -106,9 +111,9 @@ describe("Lottery on Testnet", () => {
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
   const _treasuryFee = "2000";
-  let endTime: BN;
+  let endTime: BigInt;
 
-  let lotteryId = 0;
+  let lotteryId = BigInt("0");
 
   // ----- //
   // Setup //
@@ -167,10 +172,10 @@ describe("Lottery on Testnet", () => {
   // Test //
   // ---- //
   describe("Basic flow", () => {
-    const _lengthLottery = new BN("10");
+    const _lengthLottery = BigInt("10");
 
     it("Operator starts lottery", async () => {
-      endTime = new BN(await time.latest()).add(_lengthLottery);
+      endTime = BigInt(await time.latest()) + _lengthLottery;
       const startResponse = await sendTransaction("operator", "KlayLottery", "startLottery", [
         endTime.toString(),
         _priceTicket.toString(),
@@ -179,25 +184,27 @@ describe("Lottery on Testnet", () => {
         _treasuryFee,
       ]);
       const startReceipt = (await waitResponse(startResponse))[1];
-      const lotteryOpenLog = startReceipt.logs.find((log) => {
-        return log.topics.includes(contracts.KlayLottery.abi.getEventName("LotteryOpen"));
-      });
-      if (!lotteryOpenLog) {
+      let lotteryOpenLog: ethers.LogDescription;
+      const lotteryOpenEvent = contracts.KlayLottery.abi.getEventName("LotteryOpen");
+      for (const log of startReceipt.logs) {
+        const parsedLog = contracts.KlayLottery.abi.parseLog({
+          topics: Array.from(log.topics),
+          data: log.data,
+        });
+        if (!parsedLog) continue;
+        if (parsedLog.name === lotteryOpenEvent) {
+          lotteryOpenLog = parsedLog;
+          break;
+        }
+      }
+      if (!lotteryOpenLog!) {
         throw new Error("LotteryOpen event not found");
       }
-      const parsedLog = contracts.KlayLottery.abi.parseLog({
-        topics: Array.from(lotteryOpenLog.topics),
-        data: lotteryOpenLog.data,
-      });
-      console.log(parsedLog);
-      if (!parsedLog) {
-        throw new Error("parsedLog is null");
-      }
       const prevLotteryId = lotteryId;
-      lotteryId = parsedLog.args[0];
-      expect(lotteryId).to.equal(prevLotteryId + 1, "Lottery ID should increment by 1");
+      lotteryId = lotteryOpenLog.args[0];
+      expect(lotteryId).to.equal(prevLotteryId + BigInt("1"), "Lottery ID should increment by 1");
       // Sleep for _lengthLottery
-      await sleep(_lengthLottery.toNumber() * 1000);
+      await sleep(Number(_lengthLottery * BigInt(1000)));
     });
   });
 });
