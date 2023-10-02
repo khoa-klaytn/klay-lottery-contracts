@@ -113,7 +113,7 @@ describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _priceTicket = ethers.parseEther("0.0000001");
+  const _priceTicket = ethers.parseEther("0.005");
   const _discountDivisor = "2000";
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];

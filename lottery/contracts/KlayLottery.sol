@@ -27,7 +27,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
 
     uint256 public maxPriceTicket = 1000 ether;
-    uint256 public minPriceTicket = 0.0000001 ether;
+    uint256 public minPriceTicket = 0.005 ether;
 
     uint256 public pendingInjectionNextLottery;
 
