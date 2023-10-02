@@ -214,7 +214,7 @@ describe("Lottery on Testnet", () => {
 
     it("Bob buys 1 ticket", async () => {
       const buyTicketsResponse = await sendTransaction("bob", "KlayLottery", "buyTickets", [lotteryId, ["1234561"]], {
-        value: _priceTicket + ethers.parseEther("0.001"),
+        value: _priceTicket,
       });
       await waitResponse(buyTicketsResponse);
     });
