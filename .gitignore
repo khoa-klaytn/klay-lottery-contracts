@@ -25,6 +25,7 @@ contracts.json
 # artifacts/cache/data
 artifacts
 cache
+data/abi
 
 coverage.json
 
