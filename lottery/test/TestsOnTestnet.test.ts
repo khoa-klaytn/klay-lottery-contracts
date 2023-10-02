@@ -60,11 +60,18 @@ async function sendTransaction(
   accountName: AccountName,
   contractName: ContractName,
   functionName: string,
-  args: any[]
+  args: any[],
+  overrides?: ethers.Overrides
 ) {
   const signer = contracts[contractName].contract.connect(wallets[accountName]);
   const fn = signer[functionName];
-  const response = await fn(...args);
+  let response: ethers.TransactionResponse;
+  if (overrides) {
+    console.log("Overrides: ", overrides);
+    response = await fn(...args, overrides);
+  } else {
+    response = await fn(...args);
+  }
   console.log(`Transaction sent: ${response.hash}`);
   return response as ethers.TransactionResponse;
 }
@@ -106,7 +113,7 @@ describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _priceTicket = ethers.parseEther("0.5");
+  const _priceTicket = ethers.parseEther("0.005");
   const _discountDivisor = "2000";
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
@@ -203,8 +210,13 @@ describe("Lottery on Testnet", () => {
       const prevLotteryId = lotteryId;
       lotteryId = lotteryOpenLog.args[0];
       expect(lotteryId).to.equal(prevLotteryId + BigInt("1"), "Lottery ID should increment by 1");
-      // Sleep for _lengthLottery
-      await sleep(Number(_lengthLottery * BigInt(1000)));
+    });
+
+    it("Bob buys 1 ticket", async () => {
+      const buyTicketsResponse = await sendTransaction("bob", "KlayLottery", "buyTickets", [lotteryId, ["1234561"]], {
+        value: _priceTicket + ethers.parseEther("0.001"),
+      });
+      await waitResponse(buyTicketsResponse);
     });
   });
 });
