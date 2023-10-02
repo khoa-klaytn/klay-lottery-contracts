@@ -1,6 +1,5 @@
 import { BN, time } from "@openzeppelin/test-helpers";
-import { ethers } from "ethers";
-import { Logger, parseEther } from "ethers/lib/utils";
+import ethers from "ethers";
 import { contract } from "hardhat";
 import { expect } from "chai";
 import accountsConfig from "./accounts.json";
@@ -9,7 +8,7 @@ import contractsConfig from "./contracts.json";
 // ----- //
 // Setup //
 // ----- //
-const provider = new ethers.providers.JsonRpcProvider("https://public-en-baobab.klaytn.net/");
+const provider = new ethers.JsonRpcProvider("https://public-en-baobab.klaytn.net/");
 
 type AccountName = keyof typeof accountsConfig;
 const wallets: Record<AccountName, ethers.Wallet> = {} as any;
@@ -18,7 +17,7 @@ Object.entries(accountsConfig).forEach(([name, privateKey]) => {
 });
 
 type ContractName = keyof typeof contractsConfig;
-const abis: Record<ContractName, ethers.utils.Interface> = {} as any;
+const abis: Record<ContractName, ethers.Interface> = {} as any;
 const contracts: Record<ContractName, ethers.Contract> = {} as any;
 
 // ------------ //
@@ -36,24 +35,28 @@ async function sendTransaction(
   args: any[]
 ) {
   const signer = contracts[contractName].connect(wallets[accountName]);
-  const fn = signer.functions[functionName];
+  const fn = signer[functionName];
   const response = await fn(...args);
   console.log(`Transaction sent: ${response.hash}`);
-  return response as ethers.providers.TransactionResponse;
+  return response as ethers.TransactionResponse;
 }
 /**
  * Wait for a transaction to be mined, handle transaction replacement
  * @param _response Response to wait for
  * @returns (replaced) response & receipt
  */
-async function waitResponse(_response: ethers.providers.TransactionResponse) {
+async function waitResponse(_response: ethers.TransactionResponse) {
   let response = _response;
-  let receipt: ethers.providers.TransactionReceipt;
+  let receipt: ethers.TransactionReceipt;
   try {
-    receipt = await _response.wait(1);
+    const _receipt = await _response.wait(1);
+    if (!_receipt) {
+      throw new Error("Receipt not found");
+    }
+    receipt = _receipt;
   } catch (e) {
     // Handle transaction replacement
-    if (e.code === Logger.errors.TRANSACTION_REPLACED) {
+    if (ethers.isError(e, "TRANSACTION_REPLACED")) {
       // Transaction replaced but not mined
       if (e.cancelled) {
         return waitResponse(e.replacement);
@@ -75,7 +78,7 @@ contract("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _priceTicket = parseEther("0.5");
+  const _priceTicket = ethers.parseEther("0.5");
   const _discountDivisor = "2000";
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
@@ -88,7 +91,7 @@ contract("Lottery on Testnet", () => {
   // Setup //
   // ----- //
   const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, abi }]) => {
-    const abiInterface = new ethers.utils.Interface((await import(abi)).default);
+    const abiInterface = new ethers.Interface((await import(abi)).default);
     abis[name] = abiInterface;
     contracts[name] = new ethers.Contract(address, abiInterface, provider);
   });
@@ -133,13 +136,19 @@ contract("Lottery on Testnet", () => {
       ]);
       const startReceipt = (await waitResponse(startResponse))[1];
       const lotteryOpenLog = startReceipt.logs.find((log) => {
-        return log.topics.includes(abis.KlayLottery.getEventTopic("LotteryOpen"));
+        return log.topics.includes(abis.KlayLottery.getEventName("LotteryOpen"));
       });
       if (!lotteryOpenLog) {
         throw new Error("LotteryOpen event not found");
       }
-      const parsedLog = abis.KlayLottery.parseLog(lotteryOpenLog);
+      const parsedLog = abis.KlayLottery.parseLog({
+        topics: Array.from(lotteryOpenLog.topics),
+        data: lotteryOpenLog.data,
+      });
       console.log(parsedLog);
+      if (!parsedLog) {
+        throw new Error("parsedLog is null");
+      }
       const prevLotteryId = lotteryId;
       lotteryId = parsedLog.args[0];
       expect(lotteryId).to.equal(prevLotteryId + 1, "Lottery ID should increment by 1");

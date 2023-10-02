@@ -1,4 +1,4 @@
-import { parseEther } from "ethers/lib/utils";
+import { parseEther } from "ethers";
 import { artifacts, contract } from "hardhat";
 import { assert, expect } from "chai";
 import { BN, constants, expectEvent, expectRevert, time } from "@openzeppelin/test-helpers";

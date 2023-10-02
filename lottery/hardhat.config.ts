@@ -1,7 +1,5 @@
 import type { HardhatUserConfig, NetworkUserConfig } from "hardhat/types";
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-web3";
-import "@nomiclabs/hardhat-truffle5";
+import "@nomicfoundation/hardhat-ethers";
 import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
 import "solidity-coverage";

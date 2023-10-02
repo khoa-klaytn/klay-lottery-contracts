@@ -8,10 +8,11 @@ const main = async (withVRFOnTestnet = true) => {
 
   if (currentNetwork === "testnet") {
     let randomNumberGenerator;
+    let randomNumberGeneratorAddress;
     let paymentToken;
+    let paymentTokenAddress;
 
     if (withVRFOnTestnet) {
-      console.log("RandomNumberGenerator with VRF is deployed..");
       const RandomNumberGenerator = await ethers.getContractFactory("RandomNumberGenerator");
 
       randomNumberGenerator = await RandomNumberGenerator.deploy(
@@ -19,31 +20,33 @@ const main = async (withVRFOnTestnet = true) => {
         config.KeyHash[currentNetwork],
         config.CallbackGasLimit[currentNetwork]
       );
-      await randomNumberGenerator.deployed();
-      console.log("RandomNumberGenerator deployed to:", randomNumberGenerator.address);
+      const randomNumberGeneratorReceipt = await randomNumberGenerator.deploymentTransaction().wait();
+      randomNumberGeneratorAddress = randomNumberGeneratorReceipt.contractAddress;
+      console.log("RandomNumberGenerator deployed to:", randomNumberGeneratorAddress);
 
       const PaymentToken = await ethers.getContractFactory("PaymentToken");
       paymentToken = await PaymentToken.deploy();
-      await paymentToken.deployed();
-      console.log("PaymentToken deployed to:", paymentToken.address);
+      const paymentTokenReceipt = await paymentToken.deploymentTransaction().wait();
+      paymentTokenAddress = paymentTokenReceipt.contractAddress;
+      console.log("PaymentToken deployed to:", paymentTokenAddress);
     }
     // else {
     //   console.log("RandomNumberGenerator without VRF is deployed..");
 
     //   const RandomNumberGenerator = await ethers.getContractFactory("MockRandomNumberGenerator");
     //   randomNumberGenerator = await RandomNumberGenerator.deploy();
-    //   await randomNumberGenerator.deployed();
+    //   await randomNumberGenerator.waitForDeployment();
 
-    //   console.log("RandomNumberGenerator deployed to:", randomNumberGenerator.address);
+    //   console.log("RandomNumberGenerator deployed to:", randomNumberGeneratorAddress);
     // }
 
-    const klayLottery = await KlayLottery.deploy(randomNumberGenerator.address, paymentToken.address);
-
-    await klayLottery.deployed();
-    console.log("KlayLottery deployed to:", klayLottery.address);
+    const klayLottery = await KlayLottery.deploy(randomNumberGeneratorAddress, paymentTokenAddress);
+    const klayLotteryReceipt = await klayLottery.deploymentTransaction().wait();
+    const klayLotteryAddress = klayLotteryReceipt.contractAddress;
+    console.log("KlayLottery deployed to:", klayLotteryAddress);
 
     // Set lottery address
-    await randomNumberGenerator.setLotteryAddress(klayLottery.address);
+    await randomNumberGenerator.setLotteryAddress(klayLotteryAddress);
 
     // Set operator & treasury adresses
     await klayLottery.setOperatorAndTreasuryAndInjectorAddresses(
@@ -58,8 +61,8 @@ const main = async (withVRFOnTestnet = true) => {
   //     config.VRFCoordinator[currentNetwork],
   //   );
 
-  //   await randomNumberGenerator.deployed();
-  //   console.log("RandomNumberGenerator deployed to:", randomNumberGenerator.address);
+  //   await randomNumberGenerator.waitForDeployment();
+  //   console.log("RandomNumberGenerator deployed to:", randomNumberGeneratorAddress);
 
   //   // Set fee
   //   await randomNumberGenerator.setFee(config.FeeInLink[currentNetwork]);
@@ -67,13 +70,13 @@ const main = async (withVRFOnTestnet = true) => {
   //   // Set key hash
   //   await randomNumberGenerator.setKeyHash(config.KeyHash[currentNetwork]);
 
-  //   const klayLottery = await KlayLottery.deploy(config.KlayToken[currentNetwork], randomNumberGenerator.address);
+  //   const klayLottery = await KlayLottery.deploy(config.KlayToken[currentNetwork], randomNumberGeneratorAddress);
 
-  //   await klayLottery.deployed();
-  //   console.log("KlayLottery deployed to:", klayLottery.address);
+  //   await klayLottery.waitForDeployment();
+  //   console.log("KlayLottery deployed to:", klayLotteryAddress);
 
   //   // Set lottery address
-  //   await randomNumberGenerator.setLotteryAddress(klayLottery.address);
+  //   await randomNumberGenerator.setLotteryAddress(klayLotteryAddress);
 
   //   // Set operator & treasury adresses
   //   await klayLottery.setOperatorAndTreasuryAndInjectorAddresses(
