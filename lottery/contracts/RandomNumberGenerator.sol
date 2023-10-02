@@ -2,14 +2,14 @@
 pragma solidity ^0.8.16;
 
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
-import {IVRFCoordinator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
 import {IRandomNumberGenerator} from "./interfaces/IRandomNumberGenerator.sol";
+import {ICoordinator} from "./interfaces/ICoordinator.sol";
 import {IKlayLottery} from "./interfaces/IKlayLottery.sol";
 import {OnlyLotteryable} from "./OnlyLotteryable.sol";
 
 contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyLotteryable {
-    IVRFCoordinator COORDINATOR;
+    ICoordinator COORDINATOR;
     bytes32 private keyHash;
     uint32 public callbackGasLimit;
     uint256 private latestLotteryId;
@@ -17,7 +17,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
     uint32 private randomResult;
 
     constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
-        COORDINATOR = IVRFCoordinator(coordinator);
+        COORDINATOR = ICoordinator(coordinator);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
     }
@@ -35,6 +35,10 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
         // Generate random value between 1 and 50.
         randomResult = uint32(1000000 + (randomWords[0] % 1000000));
         latestLotteryId = IKlayLottery(klayLottery).viewCurrentLotteryId();
+    }
+
+    function estimateFee(uint64 reqCount, uint8 numSubmission) external view returns (uint256) {
+        return COORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
     }
 
     // ------------------------- //

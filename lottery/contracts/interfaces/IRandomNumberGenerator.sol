@@ -2,6 +2,8 @@
 pragma solidity ^0.8.16;
 
 interface IRandomNumberGenerator {
+    function estimateFee(uint64 reqCount, uint8 numSubmission) external view returns (uint256);
+
     function requestRandomNumber(uint64 accId) external;
 
     function requestRandomNumberDirect() external payable;
