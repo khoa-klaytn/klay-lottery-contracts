@@ -159,9 +159,9 @@ describe("Lottery on Testnet", () => {
       contractsConfig.PaymentToken.address = await deployContract("PaymentToken");
     if (!contractsConfig.RandomNumberGenerator.address)
       contractsConfig.RandomNumberGenerator.address = await deployContract("RandomNumberGenerator", [
-        config.VRFCoordinator,
-        config.KeyHash,
-        config.CallbackGasLimit,
+        config.VRFCoordinator.testnet,
+        config.KeyHash.testnet,
+        config.CallbackGasLimit.testnet,
       ]);
     if (!contractsConfig.KlayLottery.address)
       contractsConfig.KlayLottery.address = await deployContract("KlayLottery", [
