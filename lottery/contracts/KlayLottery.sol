@@ -129,16 +129,16 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         _bracketCalculator[5] = 111111;
     }
 
-    function send(address recipient, uint256 amount) private returns (bool sent) {
+    function demand(uint256 sending, uint256 demanding) private pure {
         require(
-            address(this).balance >= amount,
-            string.concat("Missing funds: ", Strings.toString(amount - address(this).balance))
+            sending >= demanding,
+            string.concat("Insufficent funds: ", Strings.toString(sending), " < ", Strings.toString(demanding))
         );
-        sent = payable(recipient).send(amount);
     }
 
-    function demand(uint256 sent, uint256 demanding) private pure {
-        require(sent >= demanding, string.concat("Sent ", Strings.toString(sent), " < ", Strings.toString(demanding)));
+    function send(address recipient, uint256 amount) private returns (bool sent) {
+        demand(address(this).balance, amount);
+        sent = payable(recipient).send(amount);
     }
 
     receive() external payable {}
@@ -255,13 +255,15 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @param _lotteryId: lottery id
      * @dev Callable by operator
      */
-    function closeLottery(uint256 _lotteryId) external payable override onlyOperator nonReentrant {
+    function closeLottery(uint256 _lotteryId) external override onlyOperator nonReentrant {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
         require(block.timestamp > _lotteries[_lotteryId].endTime, "Lottery not over");
         _lotteries[_lotteryId].firstTicketIdNextLottery = currentTicketId;
 
-        // Request a random number from the generator based on a seed
-        randomGenerator.requestRandomNumberDirect();
+        // Request a random number from the generator
+        uint256 fee = randomGenerator.estimateFee();
+        demand(address(this).balance, fee);
+        randomGenerator.requestRandomNumberDirect{value: fee}();
 
         _lotteries[_lotteryId].status = Status.Close;
 

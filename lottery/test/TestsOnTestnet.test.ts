@@ -215,5 +215,19 @@ describe("Lottery on Testnet", () => {
       });
       await waitResponse(buyTicketsResponse);
     });
+
+    it("Injector injects funds", async () => {
+      const injectFundsResponse = await sendTransaction("injector", "KlayLottery", "injectFunds", [lotteryId], {
+        value: ethers.parseEther("0.5"),
+      });
+      await waitResponse(injectFundsResponse);
+    });
+
+    it("Operator closes lottery", async () => {
+      // Wait for lottery to end
+      await sleep(Number(_lengthLottery) * 1000);
+      const closeResponse = await sendTransaction("operator", "KlayLottery", "closeLottery", [lotteryId]);
+      await waitResponse(closeResponse);
+    });
   });
 });

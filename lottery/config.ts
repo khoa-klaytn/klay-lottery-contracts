@@ -1,15 +1,15 @@
 export default {
   VRFCoordinator: {
-    mainnet: "0x747973a5A2a4Ae1D3a8fDF5479f1514F65Db9C31",
-    testnet: "0xfa605ca6dc9414e0f7fa322d3fd76535b33f7a4f",
+    mainnet: "0x55048101797D0D8B812e9ED3854AE90b69E6642A",
+    testnet: "0x6B4c0b11bd7fE1E9e9a69297347cFDccA416dF5F",
   },
   CallbackGasLimit: {
-    mainnet: "2000000000",
-    testnet: "1000000000",
+    mainnet: "1000000",
+    testnet: "500000",
   },
   KeyHash: {
-    mainnet: "0xaa77729d3466ca35ae8d28b3bbac7cc36a5031efdc430821c02bc31a238af445",
-    testnet: "0xcaf3c3727e033261d383b315559476f48034c13b18f8cafed4d871abe5049186",
+    mainnet: "0x6cff5233743b3c0321a19ae11ab38ae0ddc7ddfe1e91b162fa8bb657488fb157",
+    testnet: "0xd9af33106d664a53cb9946df5cd81a30695f5b72224ee64e798b278af812779c",
   },
   OperatorAddress: {
     // TODO: MUST BE UPDATED WITH ADDRESSES

@@ -24,7 +24,7 @@ interface IKlayLottery {
      * @param _lotteryId: lottery id
      * @dev Callable by operator
      */
-    function closeLottery(uint256 _lotteryId) external payable;
+    function closeLottery(uint256 _lotteryId) external;
 
     /**
      * @notice Draw the final number, calculate reward in KLAY per group, and make lottery claimable
