@@ -244,5 +244,9 @@ describe("Lottery on Testnet", () => {
       await sleep(Number(_lengthLottery) * 1000);
       await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]);
     });
+
+    it("Operator draws lottery", async () => {
+      await sendFn(["operator", "KlayLottery", "drawFinalNumberAndMakeLotteryClaimable", [lotteryId, true]]);
+    });
   });
 });
