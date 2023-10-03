@@ -129,6 +129,11 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         _bracketCalculator[5] = 111111;
     }
 
+    function reset() public onlyOwner {
+        currentLotteryId = 0;
+        currentTicketId = 0;
+    }
+
     function demand(uint256 sending, uint256 demanding) private pure {
         require(
             sending >= demanding,

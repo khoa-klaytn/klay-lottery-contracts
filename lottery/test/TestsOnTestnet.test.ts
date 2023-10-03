@@ -148,6 +148,7 @@ describe("Lottery on Testnet", () => {
       abi: abiInterface,
     };
     if (address) {
+      console.log(`${name} already deployed at ${address}`);
       contracts[name].contract = new ethers.Contract(address, abiInterface, provider);
     } else {
       contracts[name].bytecode = artifactJson.bytecode;
@@ -175,6 +176,7 @@ describe("Lottery on Testnet", () => {
       "setOperatorAndTreasuryAndInjectorAddresses",
       [wallets.operator.address, wallets.treasury.address, wallets.injector.address],
     ]);
+    await sendFn(["alice", "KlayLottery", "reset"]);
   });
 
   // ---- //
