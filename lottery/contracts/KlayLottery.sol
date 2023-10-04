@@ -363,6 +363,16 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         makeLotteryClaimable(_lotteryId, _autoInjection, finalNumber);
     }
 
+    function setFinalNumberAndMakeLotteryClaimable(
+        uint256 _lotteryId,
+        bool _autoInjection,
+        uint32 _finalNumber
+    ) external override onlyOperator nonReentrant {
+        require(_lotteries[_lotteryId].status == Status.Close, "Lottery not close");
+        requireValidTicketNumber(_finalNumber);
+        makeLotteryClaimable(_lotteryId, _autoInjection, _finalNumber);
+    }
+
     /**
      * @notice Change the random generator
      * @dev The calls to functions are used to verify the new generator implements them properly.

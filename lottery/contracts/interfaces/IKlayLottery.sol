@@ -34,6 +34,12 @@ interface IKlayLottery {
      */
     function drawFinalNumberAndMakeLotteryClaimable(uint256 _lotteryId, bool _autoInjection) external;
 
+    function setFinalNumberAndMakeLotteryClaimable(
+        uint256 _lotteryId,
+        bool _autoInjection,
+        uint32 _finalNumber
+    ) external;
+
     /**
      * @notice Inject funds
      * @param _lotteryId: lottery id
