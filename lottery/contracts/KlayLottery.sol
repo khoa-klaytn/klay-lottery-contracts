@@ -225,8 +225,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
             uint256 thisTicketId = _ticketIds[i];
 
-            require(_lotteries[_lotteryId].firstTicketIdNextLottery > thisTicketId, "TicketId too high");
-            require(_lotteries[_lotteryId].firstTicketId <= thisTicketId, "TicketId too low");
+            requireValidTicketId(_lotteryId, thisTicketId);
             require(msg.sender == _tickets[thisTicketId].owner, "Not the owner");
 
             // Update the lottery ticket owner to 0x address
@@ -616,12 +615,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         requireClaimable(_lotteryId);
 
         // Check ticketId is within range
-        if (
-            (_lotteries[_lotteryId].firstTicketIdNextLottery < _ticketId) &&
-            (_lotteries[_lotteryId].firstTicketId >= _ticketId)
-        ) {
-            return 0;
-        }
+        requireValidTicketId(_lotteryId, _ticketId);
 
         return _calculateRewardsForTicketId(_lotteryId, _ticketId, _bracket);
     }
@@ -679,7 +673,17 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     function requireValidTicketNumber(uint32 ticketNumber) internal pure {
-        require(ticketNumberIsValid(ticketNumber), "ticketNumber outside range");
+        require(ticketNumberIsValid(ticketNumber), "ticketNumber invalid");
+    }
+
+    function ticketIdIsValid(uint256 lotteryId, uint256 ticketId) internal view returns (bool) {
+        return
+            (ticketId >= _lotteries[lotteryId].firstTicketId) &&
+            (ticketId < _lotteries[lotteryId].firstTicketIdNextLottery);
+    }
+
+    function requireValidTicketId(uint256 lotteryId, uint256 ticketId) internal view {
+        require(ticketIdIsValid(lotteryId, ticketId), "ticketId invalid");
     }
 
     /**
