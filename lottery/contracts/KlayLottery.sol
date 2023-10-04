@@ -180,7 +180,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
 
-            require((thisTicketNumber >= 1000000) && (thisTicketNumber <= 1999999), "Outside range");
+            requireValidTicketNumber(thisTicketNumber);
 
             _numberTicketsPerLotteryId[_lotteryId][1 + (thisTicketNumber % 10)]++;
             _numberTicketsPerLotteryId[_lotteryId][11 + (thisTicketNumber % 100)]++;
@@ -651,6 +651,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         }
 
         return (lotteryTicketIds, ticketNumbers, ticketStatuses, _cursor + length);
+    }
+
+    function ticketNumberIsValid(uint256 ticketNumber) internal pure returns (bool) {
+        return (ticketNumber >= 1000000) && (ticketNumber <= 1999999);
+    }
+
+    function requireValidTicketNumber(uint256 ticketNumber) internal pure {
+        require(ticketNumberIsValid(ticketNumber), "ticketNumber outside range");
     }
 
     /**
