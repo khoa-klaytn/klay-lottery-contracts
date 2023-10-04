@@ -120,6 +120,26 @@ async function sendFn(a: _SendFnP, wait = true) {
   return response;
 }
 
+function findEvent(receipt: ethers.TransactionReceipt, _eventName: string) {
+  let event: ethers.LogDescription;
+  const eventName = contracts.KlayLottery.abi.getEventName(_eventName);
+  for (const log of receipt.logs) {
+    const parsedLog = contracts.KlayLottery.abi.parseLog({
+      topics: Array.from(log.topics),
+      data: log.data,
+    });
+    if (!parsedLog) continue;
+    if (parsedLog.name === eventName) {
+      event = parsedLog;
+      break;
+    }
+  }
+  if (!event!) {
+    throw new Error(`${eventName} event not found`);
+  }
+  return event;
+}
+
 function sleep(duration: number) {
   return new Promise((resolve) => setTimeout(resolve, duration));
 }
@@ -193,24 +213,9 @@ describe("Lottery on Testnet", () => {
         [endTime.toString(), _priceTicket.toString(), _discountDivisor, _rewardsBreakdown, _treasuryFee],
       ]);
       const startReceipt = startTx[1];
-      let lotteryOpenLog: ethers.LogDescription;
-      const lotteryOpenEvent = contracts.KlayLottery.abi.getEventName("LotteryOpen");
-      for (const log of startReceipt.logs) {
-        const parsedLog = contracts.KlayLottery.abi.parseLog({
-          topics: Array.from(log.topics),
-          data: log.data,
-        });
-        if (!parsedLog) continue;
-        if (parsedLog.name === lotteryOpenEvent) {
-          lotteryOpenLog = parsedLog;
-          break;
-        }
-      }
-      if (!lotteryOpenLog!) {
-        throw new Error("LotteryOpen event not found");
-      }
+      const lotteryOpenEvent = findEvent(startReceipt, "LotteryOpen");
       const prevLotteryId = lotteryId;
-      lotteryId = lotteryOpenLog.args[0];
+      lotteryId = lotteryOpenEvent.args[0];
       expect(lotteryId).to.equal(prevLotteryId + BigInt("1"), "Lottery ID should increment by 1");
     });
 
