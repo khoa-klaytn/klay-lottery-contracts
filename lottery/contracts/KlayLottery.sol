@@ -106,7 +106,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 firstTicketId,
         uint256 injectedAmount
     );
-    event LotteryNumberDrawn(uint256 indexed lotteryId, uint256 finalNumber, uint256 countWinningTickets);
+    event LotteryNumberDrawn(uint256 indexed lotteryId, uint32 finalNumber, uint256 countWinningTickets);
     event NewOperatorAndTreasuryAndInjectorAddresses(address operator, address treasury, address injector);
     event NewRandomGenerator(address indexed randomGenerator);
     event TicketsPurchase(address indexed buyer, uint256 indexed lotteryId, uint256 numberTickets);
