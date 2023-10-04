@@ -215,7 +215,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require(_ticketIds.length == _brackets.length, "Not same length");
         require(_ticketIds.length != 0, "Length must be >0");
         require(_ticketIds.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
-        require(_lotteries[_lotteryId].status == Status.Claimable, "Lottery not claimable");
+        requireClaimable(_lotteryId);
 
         // Initializes the rewardInKlayToTransfer
         uint256 rewardInKlayToTransfer;
@@ -381,10 +381,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @param _randomGeneratorAddress: address of the random generator
      */
     function changeRandomGenerator(address _randomGeneratorAddress) external onlyOwner {
-        require(
-            (currentLotteryId == 0) || (_lotteries[currentLotteryId].status == Status.Claimable),
-            "Lottery not in claimable"
-        );
+        if (currentLotteryId != 0) {
+            requireClaimable(currentLotteryId);
+        }
 
         // Request a random number from the generator based on a seed
         IRandomNumberGenerator(_randomGeneratorAddress).requestRandomNumberDirect();
@@ -427,10 +426,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256[6] calldata _rewardsBreakdown,
         uint256 _treasuryFee
     ) external override onlyOperator {
-        require(
-            (currentLotteryId == 0) || (_lotteries[currentLotteryId].status == Status.Claimable),
-            "Not time to start lottery"
-        );
+        if (currentLotteryId != 0) {
+            require(!isClaimable(currentLotteryId), "Not time to start lottery");
+        }
 
         require(
             ((_endTime - block.timestamp) > MIN_LENGTH_LOTTERY) && ((_endTime - block.timestamp) < MAX_LENGTH_LOTTERY),
@@ -615,9 +613,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint32 _bracket
     ) external view returns (uint256) {
         // Check lottery is in claimable status
-        if (_lotteries[_lotteryId].status != Status.Claimable) {
-            return 0;
-        }
+        requireClaimable(_lotteryId);
 
         // Check ticketId is within range
         if (
@@ -668,6 +664,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         }
 
         return (lotteryTicketIds, ticketNumbers, ticketStatuses, _cursor + length);
+    }
+
+    function isClaimable(uint256 _lotteryId) internal view returns (bool) {
+        return _lotteries[_lotteryId].status == Status.Claimable;
+    }
+
+    function requireClaimable(uint256 _lotteryId) internal view {
+        require(isClaimable(_lotteryId), "Not claimable");
     }
 
     function ticketNumberIsValid(uint256 ticketNumber) internal pure returns (bool) {
