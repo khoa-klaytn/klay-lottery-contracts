@@ -264,11 +264,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         emit LotteryClose(_lotteryId, currentTicketId);
     }
 
-    function makeLotteryClaimable(
-        uint256 _lotteryId,
-        bool _autoInjection,
-        uint32 _finalNumber
-    ) private onlyOperator nonReentrant {
+    function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber) internal onlyOperator {
         // Initialize a number to count addresses in the previous bracket
         uint256 numberAddressesInPreviousBracket;
 
