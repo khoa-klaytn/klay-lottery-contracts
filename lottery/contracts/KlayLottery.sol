@@ -71,7 +71,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     mapping(uint256 => Ticket) private _tickets;
 
     // Bracket calculator is used for verifying claims for ticket prizes
-    mapping(uint32 => uint32) private _bracketCalculator;
+    mapping(uint8 => uint32) private _bracketCalculator;
 
     // Keeps track of number of ticket per unique combination for each lotteryId
     mapping(uint256 => mapping(uint32 => uint256)) private _numberTicketsPerLotteryId;
@@ -210,7 +210,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function claimTickets(
         uint256 _lotteryId,
         uint256[] calldata _ticketIds,
-        uint32[] calldata _brackets
+        uint8[] calldata _brackets
     ) external override notContract nonReentrant {
         require(_ticketIds.length == _brackets.length, "Not same length");
         require(_ticketIds.length != 0, "Length must be >0");
@@ -291,8 +291,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 amountToWithdrawToTreasury;
 
         // Calculate prizes in KLAY for each bracket by starting from the highest one
-        for (uint32 i = 0; i < 6; i++) {
-            uint32 j = 5 - i;
+        for (uint8 i = 0; i < 6; i++) {
+            uint8 j = 5 - i;
             uint32 transformedWinningNumber = _bracketCalculator[j] + (_finalNumber % (uint32(10) ** (j + 1)));
 
             _lotteries[_lotteryId].countWinnersPerBracket[j] =
@@ -609,7 +609,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function viewRewardsForTicketId(
         uint256 _lotteryId,
         uint256 _ticketId,
-        uint32 _bracket
+        uint8 _bracket
     ) external view returns (uint256) {
         // Check lottery is in claimable status
         requireClaimable(_lotteryId);
@@ -695,7 +695,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function _calculateRewardsForTicketId(
         uint256 _lotteryId,
         uint256 _ticketId,
-        uint32 _bracket
+        uint8 _bracket
     ) internal view returns (uint256) {
         // Retrieve the winning number combination
         uint32 winningTicketNumber = _lotteries[_lotteryId].finalNumber;

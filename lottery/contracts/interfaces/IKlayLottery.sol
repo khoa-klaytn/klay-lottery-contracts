@@ -17,7 +17,7 @@ interface IKlayLottery {
      * @param _brackets: array of brackets for the ticket ids
      * @dev Callable by users only, not contract!
      */
-    function claimTickets(uint256 _lotteryId, uint256[] calldata _ticketIds, uint32[] calldata _brackets) external;
+    function claimTickets(uint256 _lotteryId, uint256[] calldata _ticketIds, uint8[] calldata _brackets) external;
 
     /**
      * @notice Close lottery
