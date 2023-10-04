@@ -203,10 +203,10 @@ describe("Lottery on Testnet", () => {
   // ---- //
   describe("Basic flow", () => {
     const _lengthLottery = BigInt("20");
-    const finalNumber = "1234561";
+    const finalNumber = "234561";
     const objAccountTicketIds = {
       bob: [finalNumber],
-      carol: ["1234560", "1234562"],
+      carol: ["234560", "234562"],
     };
 
     it("Operator starts lottery", async () => {

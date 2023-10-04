@@ -70,9 +70,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     mapping(uint256 => Lottery) private _lotteries;
     mapping(uint256 => Ticket) private _tickets;
 
-    // Bracket calculator is used for verifying claims for ticket prizes
-    mapping(uint8 => uint32) private _bracketCalculator;
-
     // Keeps track of number of ticket per unique combination for each lotteryId
     mapping(uint256 => mapping(uint32 => uint256)) private _numberTicketsPerLotteryId;
 
@@ -119,14 +116,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      */
     constructor(address _randomGeneratorAddress) {
         randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
-
-        // Initializes a mapping
-        _bracketCalculator[0] = 1;
-        _bracketCalculator[1] = 11;
-        _bracketCalculator[2] = 111;
-        _bracketCalculator[3] = 1111;
-        _bracketCalculator[4] = 11111;
-        _bracketCalculator[5] = 111111;
     }
 
     function reset() public onlyOwner {
@@ -150,10 +139,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
     fallback() external payable {}
 
+    function transformNumber(uint32 number, uint8 n) internal pure returns (uint32) {
+        return number % (uint32(10) ** (n + 1));
+    }
+
     /**
      * @notice Buy tickets for the current lottery
      * @param _lotteryId: lotteryId
-     * @param _ticketNumbers: array of ticket numbers between 1,000,000 and 1,999,999
+     * @param _ticketNumbers: array of ticket numbers between 0 and 999,999
      * @dev Callable by users
      */
     function buyTickets(
@@ -182,12 +175,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
             requireValidTicketNumber(thisTicketNumber);
 
-            _numberTicketsPerLotteryId[_lotteryId][1 + (thisTicketNumber % 10)]++;
-            _numberTicketsPerLotteryId[_lotteryId][11 + (thisTicketNumber % 100)]++;
-            _numberTicketsPerLotteryId[_lotteryId][111 + (thisTicketNumber % 1000)]++;
-            _numberTicketsPerLotteryId[_lotteryId][1111 + (thisTicketNumber % 10000)]++;
-            _numberTicketsPerLotteryId[_lotteryId][11111 + (thisTicketNumber % 100000)]++;
-            _numberTicketsPerLotteryId[_lotteryId][111111 + (thisTicketNumber % 1000000)]++;
+            for (uint8 j = 0; j < 6; j++) {
+                _numberTicketsPerLotteryId[_lotteryId][transformNumber(thisTicketNumber, j)]++;
+            }
 
             _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(currentTicketId);
 
@@ -293,7 +283,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         // Calculate prizes in KLAY for each bracket by starting from the highest one
         for (uint8 i = 0; i < 6; i++) {
             uint8 j = 5 - i;
-            uint32 transformedWinningNumber = _bracketCalculator[j] + (_finalNumber % (uint32(10) ** (j + 1)));
+            uint32 transformedWinningNumber = transformNumber(_finalNumber, j);
 
             _lotteries[_lotteryId].countWinnersPerBracket[j] =
                 _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber] -
@@ -669,7 +659,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     function ticketNumberIsValid(uint32 ticketNumber) internal pure returns (bool) {
-        return (ticketNumber >= 1000000) && (ticketNumber <= 1999999);
+        return (ticketNumber >= 0) && (ticketNumber <= 999999);
     }
 
     function requireValidTicketNumber(uint32 ticketNumber) internal pure {
@@ -704,10 +694,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint32 userNumber = _tickets[_ticketId].number;
 
         // Apply transformation to verify the claim provided by the user is true
-        uint32 transformedWinningNumber = _bracketCalculator[_bracket] +
-            (winningTicketNumber % (uint32(10) ** (_bracket + 1)));
+        uint32 transformedWinningNumber = transformNumber(winningTicketNumber, _bracket);
 
-        uint32 transformedUserNumber = _bracketCalculator[_bracket] + (userNumber % (uint32(10) ** (_bracket + 1)));
+        uint32 transformedUserNumber = transformNumber(userNumber, _bracket);
 
         // Confirm that the two transformed numbers are the same, if not throw
         if (transformedWinningNumber == transformedUserNumber) {
