@@ -674,11 +674,11 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require(isClaimable(_lotteryId), "Not claimable");
     }
 
-    function ticketNumberIsValid(uint256 ticketNumber) internal pure returns (bool) {
+    function ticketNumberIsValid(uint32 ticketNumber) internal pure returns (bool) {
         return (ticketNumber >= 1000000) && (ticketNumber <= 1999999);
     }
 
-    function requireValidTicketNumber(uint256 ticketNumber) internal pure {
+    function requireValidTicketNumber(uint32 ticketNumber) internal pure {
         require(ticketNumberIsValid(ticketNumber), "ticketNumber outside range");
     }
 
