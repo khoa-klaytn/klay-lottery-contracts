@@ -75,8 +75,7 @@ async function waitResponse(_response: ethers.TransactionResponse) {
       // Transaction replaced & mined
       response = e.replacement;
       receipt = e.receipt;
-    }
-    throw e;
+    } else throw e;
   }
   return [response, receipt] as const;
 }
