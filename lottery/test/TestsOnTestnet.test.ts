@@ -148,7 +148,7 @@ describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _priceTicket = ethers.parseEther("0.005");
+  const _priceTicket = ethers.parseEther("0.1");
   const _discountDivisor = "2000";
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
@@ -202,7 +202,12 @@ describe("Lottery on Testnet", () => {
   // Test //
   // ---- //
   describe("Basic flow", () => {
-    const _lengthLottery = BigInt("10");
+    const _lengthLottery = BigInt("20");
+    const finalNumber = "1234561";
+    const objAccountTicketIds = {
+      bob: [finalNumber],
+      carol: ["1234560", "1234562"],
+    };
 
     it("Operator starts lottery", async () => {
       endTime = BigInt(await time.latest()) + _lengthLottery;
@@ -224,11 +229,18 @@ describe("Lottery on Testnet", () => {
         "bob",
         "KlayLottery",
         "buyTickets",
-        [lotteryId, ["1234561"]],
+        [lotteryId, objAccountTicketIds.bob],
         {
           value: _priceTicket,
         },
       ]);
+    });
+
+    it("Carol buys 2 tickets", async () => {
+      const value = await contracts.KlayLottery.contract.calculateCurrentTotalPriceForBulkTickets(
+        objAccountTicketIds.carol.length.toString()
+      );
+      await sendFn(["carol", "KlayLottery", "buyTickets", [lotteryId, objAccountTicketIds.carol], { value }]);
     });
 
     it("Injector injects funds", async () => {
@@ -238,7 +250,7 @@ describe("Lottery on Testnet", () => {
         "injectFunds",
         [lotteryId],
         {
-          value: ethers.parseEther("0.5"),
+          value: _priceTicket,
         },
       ]);
     });
@@ -247,10 +259,6 @@ describe("Lottery on Testnet", () => {
       // Wait for lottery to end
       await sleep(Number(_lengthLottery) * 1000);
       await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]);
-    });
-
-    it("Operator draws lottery", async () => {
-      await sendFn(["operator", "KlayLottery", "drawFinalNumberAndMakeLotteryClaimable", [lotteryId, true]]);
     });
   });
 });

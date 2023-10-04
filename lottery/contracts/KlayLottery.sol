@@ -27,7 +27,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
 
     uint256 public maxPriceTicket = 1000 ether;
-    uint256 public minPriceTicket = 0.005 ether;
+    uint256 public minPriceTicket = 0.1 ether;
 
     uint256 public pendingInjectionNextLottery;
 
@@ -531,11 +531,20 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 _discountDivisor,
         uint256 _priceTicket,
         uint256 _numberTickets
-    ) external pure returns (uint256) {
+    ) public pure returns (uint256) {
         require(_discountDivisor >= MIN_DISCOUNT_DIVISOR, "Must be >= MIN_DISCOUNT_DIVISOR");
         require(_numberTickets != 0, "Number of tickets must be > 0");
 
         return _calculateTotalPriceForBulkTickets(_discountDivisor, _priceTicket, _numberTickets);
+    }
+
+    function calculateCurrentTotalPriceForBulkTickets(uint256 _numberTickets) public view returns (uint256) {
+        return
+            calculateTotalPriceForBulkTickets(
+                _lotteries[currentLotteryId].discountDivisor,
+                _lotteries[currentLotteryId].priceTicket,
+                _numberTickets
+            );
     }
 
     /**
