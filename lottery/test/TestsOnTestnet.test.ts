@@ -47,7 +47,7 @@ async function deployContract(contractName: ContractName, args: any[] = []) {
   }
   contractsConfig[contractName].address = address;
   contracts[contractName].contract = new ethers.Contract(address, abi, provider);
-  console.log(`${contractName} deployed at ${address}`);
+  console.info(`${contractName} deployed at ${address}`);
   return address;
 }
 
@@ -97,12 +97,12 @@ async function _sendFn(
   const fn = signer[functionName];
   let response: ethers.TransactionResponse;
   if (overrides) {
-    console.log("Overrides: ", overrides);
+    console.info("Overrides: ", overrides);
     response = await fn(...args, overrides);
   } else {
     response = await fn(...args);
   }
-  console.log(`Transaction sent: ${response.hash}`);
+  console.info(`Transaction sent: ${response.hash}`);
   return response;
 }
 
@@ -168,7 +168,7 @@ describe("Lottery on Testnet", () => {
       abi: abiInterface,
     };
     if (address) {
-      console.log(`${name} already deployed at ${address}`);
+      console.info(`${name} already deployed at ${address}`);
       contracts[name].contract = new ethers.Contract(address, abiInterface, provider);
     } else {
       contracts[name].bytecode = artifactJson.bytecode;
@@ -229,11 +229,11 @@ describe("Lottery on Testnet", () => {
       const lotteryOpenEvent = findEvent(startReceipt, "LotteryOpen");
       const prevLotteryId = lotteryId;
       lotteryId = lotteryOpenEvent.args[0];
-      expect(lotteryId).to.equal(prevLotteryId + BigInt("1"), "Lottery ID should increment by 1");
+      expect(lotteryId).to.equal(prevLotteryId + 1n, "Lottery ID should increment by 1");
     });
 
     it("Bob buys 1 ticket", async () => {
-      await sendFn([
+      const buyTicketTx = await sendFn([
         "bob",
         "KlayLottery",
         "buyTickets",
@@ -242,13 +242,27 @@ describe("Lottery on Testnet", () => {
           value: _priceTicket,
         },
       ]);
+      const buyTicketReceipt = buyTicketTx[1];
+      const ticketsPurchaseEvent = findEvent(buyTicketReceipt, "TicketsPurchase");
+      const nTickets = ticketsPurchaseEvent.args[2];
+      expect(nTickets).to.equal(1n, "Bob should buy 1 ticket");
     });
 
     it("Carol buys 2 tickets", async () => {
       const value = await contracts.KlayLottery.contract.calculateCurrentTotalPriceForBulkTickets(
         objAccountTicketIds.carol.length.toString()
       );
-      await sendFn(["carol", "KlayLottery", "buyTickets", [lotteryId, objAccountTicketIds.carol], { value }]);
+      const buyTicketTx = await sendFn([
+        "carol",
+        "KlayLottery",
+        "buyTickets",
+        [lotteryId, objAccountTicketIds.carol],
+        { value },
+      ]);
+      const buyTicketReceipt = buyTicketTx[1];
+      const ticketsPurchaseEvent = findEvent(buyTicketReceipt, "TicketsPurchase");
+      const nTickets = ticketsPurchaseEvent.args[2];
+      expect(nTickets).to.equal(2n, "Carol should buy 2 tickets");
     });
 
     it("Injector injects funds", async () => {
@@ -286,7 +300,6 @@ describe("Lottery on Testnet", () => {
         1
       );
       const ticketIds = tickets[0].toArray();
-      console.log(ticketIds);
       await sendFn(["bob", "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
     });
   });
