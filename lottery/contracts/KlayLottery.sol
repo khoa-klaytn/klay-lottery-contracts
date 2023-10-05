@@ -249,6 +249,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         demand(address(this).balance, fee);
         randomGenerator.requestRandomNumberDirect{value: fee}();
 
+        _lotteries[_lotteryId].amountCollectedInKlay -= fee;
         _lotteries[_lotteryId].status = Status.Close;
 
         emit LotteryClose(_lotteryId, currentTicketId);
