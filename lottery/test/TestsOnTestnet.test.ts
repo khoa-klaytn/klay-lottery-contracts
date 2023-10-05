@@ -148,11 +148,12 @@ describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _priceTicket = ethers.parseEther("0.1");
+  const _priceTicket = ethers.parseEther("1");
   const _discountDivisor = "2000";
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
-  const _burnPortion = "2000";
+  const _winnersPortion = "1000";
+  const _burnPortion = "8000";
   let endTime: BigInt;
 
   let lotteryId = BigInt("0");
@@ -215,7 +216,14 @@ describe("Lottery on Testnet", () => {
         "operator",
         "KlayLottery",
         "startLottery",
-        [endTime.toString(), _priceTicket.toString(), _discountDivisor, _rewardsBreakdown, _burnPortion],
+        [
+          endTime.toString(),
+          _priceTicket.toString(),
+          _discountDivisor,
+          _rewardsBreakdown,
+          _winnersPortion,
+          _burnPortion,
+        ],
       ]);
       const startReceipt = startTx[1];
       const lotteryOpenEvent = findEvent(startReceipt, "LotteryOpen");

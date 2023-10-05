@@ -27,7 +27,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
 
     uint256 public maxPriceTicket = 1000 ether;
-    uint256 public minPriceTicket = 0.1 ether;
+    uint256 public minPriceTicket = 1 ether;
 
     uint256 public pendingInjectionNextLottery;
 
@@ -51,6 +51,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 priceTicket;
         uint256 discountDivisor;
         uint256[6] rewardsBreakdown; // 0: 1 matching number // 5: 6 matching numbers
+        uint256 winnersPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256 burnPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256[6] klayPerBracket;
         uint256[6] countWinnersPerBracket;
@@ -271,9 +272,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 numWinners;
 
         // Calculate the amount to share post-burn fee
-        uint256 amountToShareToWinners = (
-            ((_lotteries[_lotteryId].amountCollectedInKlay) * (10000 - _lotteries[_lotteryId].burnPortion))
-        ) / 10000;
+        uint256 amountToShareToWinners = (_lotteries[_lotteryId].amountCollectedInKlay *
+            _lotteries[_lotteryId].winnersPortion) / 10000;
 
         // Initializes the amount to burn
         uint256 amountToBurn;
@@ -313,7 +313,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             amountToBurn = 0;
         }
 
-        amountToBurn += (_lotteries[_lotteryId].amountCollectedInKlay - amountToShareToWinners);
+        amountToBurn += (_lotteries[_lotteryId].amountCollectedInKlay * _lotteries[_lotteryId].burnPortion) / 10000;
 
         // Burn KLAY
         bool burnt = burn(amountToBurn);
@@ -401,6 +401,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 _priceTicket,
         uint256 _discountDivisor,
         uint256[6] calldata _rewardsBreakdown,
+        uint256 _winnersPortion,
         uint256 _burnPortion
     ) external override onlyOperator {
         if (currentLotteryId != 0) {
@@ -435,6 +436,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             priceTicket: _priceTicket,
             discountDivisor: _discountDivisor,
             rewardsBreakdown: _rewardsBreakdown,
+            winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
             klayPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             countWinnersPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
