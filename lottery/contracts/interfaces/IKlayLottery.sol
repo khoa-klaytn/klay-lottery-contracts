@@ -14,10 +14,9 @@ interface IKlayLottery {
      * @notice Claim a set of winning tickets for a lottery
      * @param _lotteryId: lottery id
      * @param _ticketIds: array of ticket ids
-     * @param _brackets: array of brackets for the ticket ids
      * @dev Callable by users only, not contract!
      */
-    function claimTickets(uint256 _lotteryId, uint256[] calldata _ticketIds, uint8[] calldata _brackets) external;
+    function claimTickets(uint256 _lotteryId, uint256[] calldata _ticketIds) external;
 
     /**
      * @notice Close lottery

@@ -179,9 +179,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
             requireValidTicketNumber(thisTicketNumber);
 
-            for (uint8 j = 0; j < 6; j++) {
-                _numberTicketsPerLotteryId[_lotteryId][transformNumber(thisTicketNumber, j)]++;
-            }
+            _numberTicketsPerLotteryId[_lotteryId][thisTicketNumber]++;
 
             _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(currentTicketId);
 
@@ -198,15 +196,12 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @notice Claim a set of winning tickets for a lottery
      * @param _lotteryId: lottery id
      * @param _ticketIds: array of ticket ids
-     * @param _brackets: array of brackets for the ticket ids
      * @dev Callable by users only, not contract!
      */
     function claimTickets(
         uint256 _lotteryId,
-        uint256[] calldata _ticketIds,
-        uint8[] calldata _brackets
+        uint256[] calldata _ticketIds
     ) external override notContract nonReentrant {
-        require(_ticketIds.length == _brackets.length, "Not same length");
         require(_ticketIds.length != 0, "Length must be >0");
         require(_ticketIds.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
         requireClaimable(_lotteryId);
@@ -215,8 +210,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 rewardInKlayToTransfer;
 
         for (uint256 i = 0; i < _ticketIds.length; i++) {
-            require(_brackets[i] < 6, "Bracket out of range"); // Must be between 0 and 5
-
             uint256 thisTicketId = _ticketIds[i];
 
             requireValidTicketId(_lotteryId, thisTicketId);
@@ -225,17 +218,10 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             // Update the lottery ticket owner to 0x address
             _tickets[thisTicketId].owner = address(0);
 
-            uint256 rewardForTicketId = _calculateRewardsForTicketId(_lotteryId, thisTicketId, _brackets[i]);
+            uint256 rewardForTicketId = _calculateRewardsForTicketId(_lotteryId, thisTicketId);
 
             // Check user is claiming the correct bracket
-            require(rewardForTicketId != 0, "No prize for this bracket");
-
-            if (_brackets[i] != 5) {
-                require(
-                    _calculateRewardsForTicketId(_lotteryId, thisTicketId, _brackets[i] + 1) == 0,
-                    "Bracket must be higher"
-                );
-            }
+            require(rewardForTicketId != 0, "No prize");
 
             // Increment the reward to transfer
             rewardInKlayToTransfer += rewardForTicketId;
@@ -576,20 +562,15 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @dev Computations are mostly offchain. This is used to verify a ticket!
      * @param _lotteryId: lottery id
      * @param _ticketId: ticket id
-     * @param _bracket: bracket for the ticketId to verify the claim and calculate rewards
      */
-    function viewRewardsForTicketId(
-        uint256 _lotteryId,
-        uint256 _ticketId,
-        uint8 _bracket
-    ) external view returns (uint256) {
+    function viewRewardsForTicketId(uint256 _lotteryId, uint256 _ticketId) external view returns (uint256) {
         // Check lottery is in claimable status
         requireClaimable(_lotteryId);
 
         // Check ticketId is within range
         requireValidTicketId(_lotteryId, _ticketId);
 
-        return _calculateRewardsForTicketId(_lotteryId, _ticketId, _bracket);
+        return _calculateRewardsForTicketId(_lotteryId, _ticketId);
     }
 
     /**
@@ -662,30 +643,24 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @notice Calculate rewards for a given ticket
      * @param _lotteryId: lottery id
      * @param _ticketId: ticket id
-     * @param _bracket: bracket for the ticketId to verify the claim and calculate rewards
      */
-    function _calculateRewardsForTicketId(
-        uint256 _lotteryId,
-        uint256 _ticketId,
-        uint8 _bracket
-    ) internal view returns (uint256) {
+    function _calculateRewardsForTicketId(uint256 _lotteryId, uint256 _ticketId) internal view returns (uint256) {
         // Retrieve the winning number combination
         uint32 winningTicketNumber = _lotteries[_lotteryId].finalNumber;
 
         // Retrieve the user number combination from the ticketId
         uint32 userNumber = _tickets[_ticketId].number;
 
-        // Apply transformation to verify the claim provided by the user is true
-        uint32 transformedWinningNumber = transformNumber(winningTicketNumber, _bracket);
-
-        uint32 transformedUserNumber = transformNumber(userNumber, _bracket);
-
-        // Confirm that the two transformed numbers are the same, if not throw
-        if (transformedWinningNumber == transformedUserNumber) {
-            return _lotteries[_lotteryId].klayPerBracket[_bracket];
-        } else {
-            return 0;
+        for (uint8 i = 5; i >= 0; i--) {
+            // Compare the two numbers combination, from the end to the beginning
+            // If they are equal, return the reward for this bracket
+            if (transformNumber(winningTicketNumber, i) == transformNumber(userNumber, i)) {
+                return _lotteries[_lotteryId].klayPerBracket[i];
+            }
         }
+
+        // No matching numbers, return 0
+        return 0;
     }
 
     /**

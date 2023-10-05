@@ -265,7 +265,7 @@ describe("Lottery on Testnet", () => {
 
     it("Operator closes lottery", async () => {
       // Wait for lottery to end
-      await sleep(Number(_lengthLottery) * 1000);
+      await sleep(Number(_lengthLottery) * 500);
       await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]);
     });
 
@@ -276,6 +276,18 @@ describe("Lottery on Testnet", () => {
         "setFinalNumberAndMakeLotteryClaimable",
         [lotteryId, true, finalNumber],
       ]);
+    });
+
+    it("Bob claims his tickets", async () => {
+      const tickets = await contracts.KlayLottery.contract.viewUserInfoForLotteryId(
+        wallets.bob.address,
+        lotteryId,
+        0,
+        1
+      );
+      const ticketIds = tickets[0].toArray();
+      console.log(ticketIds);
+      await sendFn(["bob", "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
     });
   });
 });
