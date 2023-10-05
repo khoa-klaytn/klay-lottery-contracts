@@ -284,12 +284,16 @@ describe("Lottery on Testnet", () => {
     });
 
     it("Operator draws lottery", async () => {
-      await sendFn([
+      const tx = await sendFn([
         "operator",
         "KlayLottery",
         "setFinalNumberAndMakeLotteryClaimable",
         [lotteryId, true, finalNumber],
       ]);
+      const receipt = tx[1];
+      const lotteryNumberDrawnEvent = findEvent(receipt, "LotteryNumberDrawn");
+      const nWinners = lotteryNumberDrawnEvent.args[2];
+      expect(nWinners).to.equal(1n, "Only Bob should win");
     });
 
     it("Bob claims his tickets", async () => {
@@ -300,7 +304,10 @@ describe("Lottery on Testnet", () => {
         1
       );
       const ticketIds = tickets[0].toArray();
-      await sendFn(["bob", "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
+      const claimTicketsTx = await sendFn(["bob", "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
+      const claimTicketsReceipt = claimTicketsTx[1];
+      const ticketsClaimEvent = findEvent(claimTicketsReceipt, "TicketsClaim");
+      console.info(`Reward: ${ticketsClaimEvent.args[2]}`);
     });
   });
 });
