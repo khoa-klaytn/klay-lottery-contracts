@@ -16,10 +16,10 @@ import "./interfaces/IKlayLottery.sol";
  */
 contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     using SafeERC20 for IERC20;
+    address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     address payable public operatorAddress;
     address payable public injectorAddress;
-    address payable public treasuryAddress;
 
     uint256 public currentLotteryId;
     uint256 public currentTicketId;
@@ -34,7 +34,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
     uint256 public constant MIN_LENGTH_LOTTERY = 1 seconds;
     uint256 public constant MAX_LENGTH_LOTTERY = 30 days + 10 minutes;
-    uint256 public constant MAX_TREASURY_FEE = 3000; // 30%
 
     IRandomNumberGenerator public randomGenerator;
 
@@ -52,7 +51,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 priceTicket;
         uint256 discountDivisor;
         uint256[6] rewardsBreakdown; // 0: 1 matching number // 5: 6 matching numbers
-        uint256 treasuryFee; // 500: 5% // 200: 2% // 50: 0.5%
+        uint256 burnPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256[6] klayPerBracket;
         uint256[6] countWinnersPerBracket;
         uint256 firstTicketId;
@@ -104,7 +103,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 injectedAmount
     );
     event LotteryNumberDrawn(uint256 indexed lotteryId, uint32 finalNumber, uint256 countWinningTickets);
-    event NewOperatorAndTreasuryAndInjectorAddresses(address operator, address treasury, address injector);
+    event NewOperatorAndInjectorAddresses(address operator, address injector);
     event NewRandomGenerator(address indexed randomGenerator);
     event TicketsPurchase(address indexed buyer, uint256 indexed lotteryId, uint256 numberTickets);
     event TicketsClaim(address indexed claimer, uint256 amount, uint256 indexed lotteryId, uint256 numberTickets);
@@ -123,16 +122,20 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         currentTicketId = 0;
     }
 
-    function demand(uint256 sending, uint256 demanding) private pure {
+    function demand(uint256 sending, uint256 demanding) internal pure {
         require(
             sending >= demanding,
             string.concat("Insufficent funds: ", Strings.toString(sending), " < ", Strings.toString(demanding))
         );
     }
 
-    function send(address recipient, uint256 amount) private returns (bool sent) {
+    function send(address recipient, uint256 amount) internal returns (bool sent) {
         demand(address(this).balance, amount);
         sent = payable(recipient).send(amount);
+    }
+
+    function burn(uint256 amount) internal returns (bool) {
+        return send(ZERO_ADDRESS, amount);
     }
 
     receive() external payable {}
@@ -268,13 +271,13 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         // Initialize a number to count addresses in the previous bracket
         uint256 numberAddressesInPreviousBracket;
 
-        // Calculate the amount to share post-treasury fee
+        // Calculate the amount to share post-burn fee
         uint256 amountToShareToWinners = (
-            ((_lotteries[_lotteryId].amountCollectedInKlay) * (10000 - _lotteries[_lotteryId].treasuryFee))
+            ((_lotteries[_lotteryId].amountCollectedInKlay) * (10000 - _lotteries[_lotteryId].burnPortion))
         ) / 10000;
 
-        // Initializes the amount to withdraw to treasury
-        uint256 amountToWithdrawToTreasury;
+        // Initializes the amount to burn
+        uint256 amountToBurn;
 
         // Calculate prizes in KLAY for each bracket by starting from the highest one
         for (uint8 i = 0; i < 6; i++) {
@@ -302,13 +305,11 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
                     // Update numberAddressesInPreviousBracket
                     numberAddressesInPreviousBracket = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
                 }
-                // A. No KLAY to distribute, they are added to the amount to withdraw to treasury address
+                // A. No KLAY to distribute, they are added to the amount to burn
             } else {
                 _lotteries[_lotteryId].klayPerBracket[j] = 0;
 
-                amountToWithdrawToTreasury +=
-                    (_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) /
-                    10000;
+                amountToBurn += (_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) / 10000;
             }
         }
 
@@ -317,15 +318,15 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         _lotteries[_lotteryId].status = Status.Claimable;
 
         if (_autoInjection) {
-            pendingInjectionNextLottery = amountToWithdrawToTreasury;
-            amountToWithdrawToTreasury = 0;
+            pendingInjectionNextLottery = amountToBurn;
+            amountToBurn = 0;
         }
 
-        amountToWithdrawToTreasury += (_lotteries[_lotteryId].amountCollectedInKlay - amountToShareToWinners);
+        amountToBurn += (_lotteries[_lotteryId].amountCollectedInKlay - amountToShareToWinners);
 
-        // Transfer KLAY to treasury address
-        bool sent = send(treasuryAddress, amountToWithdrawToTreasury);
-        require(sent, "Failed to send KLAY to treasury");
+        // Burn KLAY
+        bool burnt = burn(amountToBurn);
+        require(burnt, "Failed to burn");
 
         emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numberAddressesInPreviousBracket);
     }
@@ -402,14 +403,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @param _priceTicket: price of a ticket in KLAY
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
-     * @param _treasuryFee: treasury fee (10,000 = 100%, 100 = 1%)
+     * @param _burnPortion: burn portion (10,000 = 100%, 100 = 1%)
      */
     function startLottery(
         uint256 _endTime,
         uint256 _priceTicket,
         uint256 _discountDivisor,
         uint256[6] calldata _rewardsBreakdown,
-        uint256 _treasuryFee
+        uint256 _burnPortion
     ) external override onlyOperator {
         if (currentLotteryId != 0) {
             require(!isClaimable(currentLotteryId), "Not time to start lottery");
@@ -423,7 +424,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require((_priceTicket >= minPriceTicket) && (_priceTicket <= maxPriceTicket), "Outside of limits");
 
         require(_discountDivisor >= MIN_DISCOUNT_DIVISOR, "Discount divisor too low");
-        require(_treasuryFee <= MAX_TREASURY_FEE, "Treasury fee too high");
 
         require(
             (_rewardsBreakdown[0] +
@@ -444,7 +444,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             priceTicket: _priceTicket,
             discountDivisor: _discountDivisor,
             rewardsBreakdown: _rewardsBreakdown,
-            treasuryFee: _treasuryFee,
+            burnPortion: _burnPortion,
             klayPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             countWinnersPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             firstTicketId: currentTicketId,
@@ -499,26 +499,19 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     /**
-     * @notice Set operator, treasury, and injector addresses
+     * @notice Set operator and injector addresses
      * @dev Only callable by owner
      * @param _operatorAddress: address of the operator
-     * @param _treasuryAddress: address of the treasury
      * @param _injectorAddress: address of the injector
      */
-    function setOperatorAndTreasuryAndInjectorAddresses(
-        address _operatorAddress,
-        address _treasuryAddress,
-        address _injectorAddress
-    ) external onlyOwner {
+    function setOperatorAndInjectorAddresses(address _operatorAddress, address _injectorAddress) external onlyOwner {
         require(_operatorAddress != address(0), "Cannot be zero address");
-        require(_treasuryAddress != address(0), "Cannot be zero address");
         require(_injectorAddress != address(0), "Cannot be zero address");
 
         operatorAddress = payable(_operatorAddress);
-        treasuryAddress = payable(_treasuryAddress);
         injectorAddress = payable(_injectorAddress);
 
-        emit NewOperatorAndTreasuryAndInjectorAddresses(_operatorAddress, _treasuryAddress, _injectorAddress);
+        emit NewOperatorAndInjectorAddresses(_operatorAddress, _injectorAddress);
     }
 
     /**

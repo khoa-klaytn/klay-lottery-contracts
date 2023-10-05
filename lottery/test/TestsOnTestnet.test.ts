@@ -152,7 +152,7 @@ describe("Lottery on Testnet", () => {
   const _discountDivisor = "2000";
 
   const _rewardsBreakdown = ["200", "300", "500", "1500", "2500", "5000"];
-  const _treasuryFee = "2000";
+  const _burnPortion = "2000";
   let endTime: BigInt;
 
   let lotteryId = BigInt("0");
@@ -192,8 +192,8 @@ describe("Lottery on Testnet", () => {
     await sendFn([
       "alice",
       "KlayLottery",
-      "setOperatorAndTreasuryAndInjectorAddresses",
-      [wallets.operator.address, wallets.treasury.address, wallets.injector.address],
+      "setOperatorAndInjectorAddresses",
+      [wallets.operator.address, wallets.injector.address],
     ]);
     await sendFn(["alice", "KlayLottery", "reset"]);
   });
@@ -215,7 +215,7 @@ describe("Lottery on Testnet", () => {
         "operator",
         "KlayLottery",
         "startLottery",
-        [endTime.toString(), _priceTicket.toString(), _discountDivisor, _rewardsBreakdown, _treasuryFee],
+        [endTime.toString(), _priceTicket.toString(), _discountDivisor, _rewardsBreakdown, _burnPortion],
       ]);
       const startReceipt = startTx[1];
       const lotteryOpenEvent = findEvent(startReceipt, "LotteryOpen");

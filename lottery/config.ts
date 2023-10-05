@@ -1,4 +1,5 @@
 export default {
+  ZeroAddress: "0x000000000000000000000000000000000000dead",
   VRFCoordinator: {
     mainnet: "0x55048101797D0D8B812e9ED3854AE90b69E6642A",
     testnet: "0x6B4c0b11bd7fE1E9e9a69297347cFDccA416dF5F",
