@@ -268,8 +268,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber) internal onlyOperator {
-        // Initialize a number to count addresses in the previous bracket
-        uint256 numberAddressesInPreviousBracket;
+        uint256 numWinners;
 
         // Calculate the amount to share post-burn fee
         uint256 amountToShareToWinners = (
@@ -280,36 +279,28 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 amountToBurn;
 
         // Calculate prizes in KLAY for each bracket by starting from the highest one
-        for (uint8 i = 0; i < 6; i++) {
-            uint8 j = 5 - i;
-            uint32 transformedWinningNumber = transformNumber(_finalNumber, j);
+        for (uint8 bracket = 0; bracket < 6; bracket++) {
+            uint32 transformedWinningNumber = transformNumber(_finalNumber, bracket);
+            uint256 bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
+            uint256 bracketReward = _lotteries[_lotteryId].rewardsBreakdown[bracket];
+            uint256 bracketAmountToShare = (amountToShareToWinners * bracketReward) / 10000;
 
-            _lotteries[_lotteryId].countWinnersPerBracket[j] =
-                _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber] -
-                numberAddressesInPreviousBracket;
+            _lotteries[_lotteryId].countWinnersPerBracket[bracket] = bracketNumWinners;
 
             // A. If number of users for this _bracket number is superior to 0
-            if (
-                (_numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber] - numberAddressesInPreviousBracket) !=
-                0
-            ) {
+            if (bracketNumWinners != 0) {
                 // B. If rewards at this bracket are > 0, calculate, else,
                 // report the numberAddresses from previous bracket
-                if (_lotteries[_lotteryId].rewardsBreakdown[j] != 0) {
-                    _lotteries[_lotteryId].klayPerBracket[j] =
-                        ((_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) /
-                            (_numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber] -
-                                numberAddressesInPreviousBracket)) /
-                        10000;
-
-                    // Update numberAddressesInPreviousBracket
-                    numberAddressesInPreviousBracket = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
+                if (bracketReward != 0) {
+                    _lotteries[_lotteryId].klayPerBracket[bracket] = bracketAmountToShare / bracketNumWinners;
                 }
+
+                numWinners += bracketNumWinners;
                 // A. No KLAY to distribute, they are added to the amount to burn
             } else {
-                _lotteries[_lotteryId].klayPerBracket[j] = 0;
+                _lotteries[_lotteryId].klayPerBracket[bracket] = 0;
 
-                amountToBurn += (_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) / 10000;
+                amountToBurn += bracketAmountToShare;
             }
         }
 
@@ -328,7 +319,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         bool burnt = burn(amountToBurn);
         require(burnt, "Failed to burn");
 
-        emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numberAddressesInPreviousBracket);
+        emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numWinners);
     }
 
     /**
