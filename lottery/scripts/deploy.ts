@@ -41,9 +41,8 @@ const main = async (withVRFOnTestnet = true) => {
     await randomNumberGenerator.setLotteryAddress(klayLotteryAddress);
 
     // Set operator & treasury adresses
-    await klayLottery.setOperatorAndTreasuryAndInjectorAddresses(
+    await klayLottery.setOperatorAndInjectorAddresses(
       config.OperatorAddress[currentNetwork],
-      config.TreasuryAddress[currentNetwork],
       config.InjectorAddress[currentNetwork]
     );
   }
@@ -71,9 +70,8 @@ const main = async (withVRFOnTestnet = true) => {
   //   await randomNumberGenerator.setLotteryAddress(klayLotteryAddress);
 
   //   // Set operator & treasury adresses
-  //   await klayLottery.setOperatorAndTreasuryAndInjectorAddresses(
+  //   await klayLottery.setOperatorAndInjectorAddresses(
   //     config.OperatorAddress[currentNetwork],
-  //     config.TreasuryAddress[currentNetwork],
   //     config.InjectorAddress[currentNetwork]
   //   );
   // }
