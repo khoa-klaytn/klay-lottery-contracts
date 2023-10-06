@@ -143,8 +143,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
     fallback() external payable {}
 
-    function transformNumber(uint32 number, uint8 n) internal pure returns (uint32) {
-        return number % (uint32(10) ** (n + 1));
+    function transformNumber(uint32 number, uint8 base) internal pure returns (uint32) {
+        return number % (uint32(10) ** base);
     }
 
     /**
@@ -220,9 +220,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
 
             uint256 rewardForTicketId = _calculateRewardsForTicketId(_lotteryId, thisTicketId);
 
-            // Check user is claiming the correct bracket
-            require(rewardForTicketId != 0, "No prize");
-
             // Increment the reward to transfer
             rewardInKlayToTransfer += rewardForTicketId;
         }
@@ -266,8 +263,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 amountToBurn;
 
         // Calculate prizes in KLAY for each bracket by starting from the highest one
-        for (uint8 bracket = 0; bracket < 6; bracket++) {
-            uint32 transformedWinningNumber = transformNumber(_finalNumber, bracket);
+        for (uint8 i = 6; i != 0; i--) {
+            uint8 bracket = i - 1;
+            uint32 transformedWinningNumber = transformNumber(_finalNumber, i);
             uint256 bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
             uint256 bracketReward = _lotteries[_lotteryId].rewardsBreakdown[bracket];
             uint256 bracketAmountToShare = (amountToShareToWinners * bracketReward) / 10000;
@@ -413,6 +411,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
                 _rewardsBreakdown[5]) == 10000,
             "Rewards must equal 10000"
         );
+
+        require(_winnersPortion + _burnPortion <= 9000, "Winners + burn must be <= 9000");
 
         currentLotteryId++;
 
@@ -652,11 +652,11 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         // Retrieve the user number combination from the ticketId
         uint32 userNumber = _tickets[_ticketId].number;
 
-        for (uint8 i = 5; i >= 0; i--) {
+        for (uint8 i = 6; i != 0; i--) {
             // Compare the two numbers combination, from the end to the beginning
             // If they are equal, return the reward for this bracket
             if (transformNumber(winningTicketNumber, i) == transformNumber(userNumber, i)) {
-                return _lotteries[_lotteryId].klayPerBracket[i];
+                return _lotteries[_lotteryId].klayPerBracket[i - 1];
             }
         }
 

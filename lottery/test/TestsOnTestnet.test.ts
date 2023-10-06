@@ -296,18 +296,27 @@ describe("Lottery on Testnet", () => {
       expect(nWinners).to.equal(1n, "Only Bob should win");
     });
 
-    it("Bob claims his tickets", async () => {
+    async function claimTickets(accountName: AccountName, size: number) {
       const tickets = await contracts.KlayLottery.contract.viewUserInfoForLotteryId(
-        wallets.bob.address,
+        wallets[accountName].address,
         lotteryId,
         0,
-        1
+        size
       );
       const ticketIds = tickets[0].toArray();
-      const claimTicketsTx = await sendFn(["bob", "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
+      console.info(`Ticket IDs: ${ticketIds}`);
+      const claimTicketsTx = await sendFn([accountName, "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
       const claimTicketsReceipt = claimTicketsTx[1];
       const ticketsClaimEvent = findEvent(claimTicketsReceipt, "TicketsClaim");
-      console.info(`Reward: ${ticketsClaimEvent.args[2]}`);
+      console.info(`Reward: ${ticketsClaimEvent.args[1]}`);
+    }
+
+    it("Bob claims his tickets", async () => {
+      await claimTickets("bob", 1);
+    });
+
+    it("Carol claims her tickets", async () => {
+      await claimTickets("carol", 2);
     });
   });
 });
