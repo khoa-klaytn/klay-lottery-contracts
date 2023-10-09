@@ -528,6 +528,13 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     /**
+     * @notice View max number of tickets
+     */
+    function viewMaxNumberTicketsPerBuyOrClaim() external view returns (uint256) {
+        return maxNumberTicketsPerBuyOrClaim;
+    }
+
+    /**
      * @notice View lottery information
      * @param _lotteryId: lottery id
      */
