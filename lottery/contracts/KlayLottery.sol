@@ -53,11 +53,11 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256[6] rewardsBreakdown; // 0: 1 matching number // 5: 6 matching numbers
         uint256 winnersPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256 burnPortion; // 500: 5% // 200: 2% // 50: 0.5%
-        uint256[6] klayPerBracket;
+        uint256[6] rewardPerUserPerBracket;
         uint256[6] countWinnersPerBracket;
         uint256 firstTicketId;
         uint256 firstTicketIdNextLottery;
-        uint256 amountCollectedInKlay;
+        uint256 amountCollected;
         uint32 finalNumber;
     }
 
@@ -163,16 +163,16 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery is not open");
         require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
 
-        // Calculate number of KLAY to this contract
-        uint256 amountKlayToTransfer = _calculateTotalPriceForBulkTickets(
+        // Calculate cost of tickets
+        uint256 amountToTransfer = _calculateTotalPriceForBulkTickets(
             _lotteries[_lotteryId].discountDivisor,
             _lotteries[_lotteryId].priceTicket,
             _ticketNumbers.length
         );
-        demand(msg.value, amountKlayToTransfer);
+        demand(msg.value, amountToTransfer);
 
         // Increment the total amount collected for the lottery round
-        _lotteries[_lotteryId].amountCollectedInKlay += amountKlayToTransfer;
+        _lotteries[_lotteryId].amountCollected += amountToTransfer;
 
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
@@ -206,8 +206,8 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require(_ticketIds.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
         requireClaimable(_lotteryId);
 
-        // Initializes the rewardInKlayToTransfer
-        uint256 rewardInKlayToTransfer;
+        // Initialize reward
+        uint256 reward;
 
         for (uint256 i = 0; i < _ticketIds.length; i++) {
             uint256 thisTicketId = _ticketIds[i];
@@ -221,14 +221,14 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             uint256 rewardForTicketId = _calculateRewardsForTicketId(_lotteryId, thisTicketId);
 
             // Increment the reward to transfer
-            rewardInKlayToTransfer += rewardForTicketId;
+            reward += rewardForTicketId;
         }
 
-        // Transfer money to msg.sender
-        bool sent = send(msg.sender, rewardInKlayToTransfer);
-        require(sent, "Failed to send KLAY");
+        // Transfer reward to msg.sender
+        bool sent = send(msg.sender, reward);
+        require(sent, "Failed to send reward");
 
-        emit TicketsClaim(msg.sender, rewardInKlayToTransfer, _lotteryId, _ticketIds.length);
+        emit TicketsClaim(msg.sender, reward, _lotteryId, _ticketIds.length);
     }
 
     /**
@@ -246,7 +246,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         demand(address(this).balance, fee);
         randomGenerator.requestRandomNumberDirect{value: fee}();
 
-        _lotteries[_lotteryId].amountCollectedInKlay -= fee;
+        _lotteries[_lotteryId].amountCollected -= fee;
         _lotteries[_lotteryId].status = Status.Close;
 
         emit LotteryClose(_lotteryId, currentTicketId);
@@ -256,13 +256,13 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 numWinners;
 
         // Calculate the amount to share post-burn fee
-        uint256 amountToShareToWinners = (_lotteries[_lotteryId].amountCollectedInKlay *
+        uint256 amountToShareToWinners = (_lotteries[_lotteryId].amountCollected *
             _lotteries[_lotteryId].winnersPortion) / 10000;
 
         // Initializes the amount to burn
         uint256 amountToBurn;
 
-        // Calculate prizes in KLAY for each bracket by starting from the highest one
+        // Calculate prizes for each bracket by starting from the highest one
         for (uint8 i = 6; i != 0; i--) {
             uint8 bracket = i - 1;
             uint32 transformedWinningNumber = transformNumber(_finalNumber, i);
@@ -277,13 +277,13 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
                 // B. If rewards at this bracket are > 0, calculate, else,
                 // report the numberAddresses from previous bracket
                 if (bracketReward != 0) {
-                    _lotteries[_lotteryId].klayPerBracket[bracket] = bracketAmountToShare / bracketNumWinners;
+                    _lotteries[_lotteryId].rewardPerUserPerBracket[bracket] = bracketAmountToShare / bracketNumWinners;
                 }
 
                 numWinners += bracketNumWinners;
-                // A. No KLAY to distribute, they are added to the amount to burn
+                // A. No winners to distribute to, reward is added to the amount to burn
             } else {
-                _lotteries[_lotteryId].klayPerBracket[bracket] = 0;
+                _lotteries[_lotteryId].rewardPerUserPerBracket[bracket] = 0;
 
                 amountToBurn += bracketAmountToShare;
             }
@@ -298,9 +298,9 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             amountToBurn = 0;
         }
 
-        amountToBurn += (_lotteries[_lotteryId].amountCollectedInKlay * _lotteries[_lotteryId].burnPortion) / 10000;
+        amountToBurn += (_lotteries[_lotteryId].amountCollected * _lotteries[_lotteryId].burnPortion) / 10000;
 
-        // Burn KLAY
+        // Burn
         bool burnt = burn(amountToBurn);
         require(burnt, "Failed to burn");
 
@@ -308,7 +308,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     /**
-     * @notice Draw the final number, calculate reward in KLAY per group, and make lottery claimable
+     * @notice Draw the final number, calculate reward per group, and make lottery claimable
      * @param _lotteryId: lottery id
      * @param _autoInjection: reinjects funds into next lottery (vs. withdrawing all)
      * @dev Callable by operator
@@ -367,7 +367,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
 
         uint256 amount = msg.value;
-        _lotteries[_lotteryId].amountCollectedInKlay += amount;
+        _lotteries[_lotteryId].amountCollected += amount;
 
         emit LotteryInjection(_lotteryId, amount);
     }
@@ -376,7 +376,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _priceTicket: price of a ticket in KLAY
+     * @param _priceTicket: price of a ticket
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
      * @param _burnPortion: burn portion (10,000 = 100%, 100 = 1%)
@@ -425,11 +425,11 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             rewardsBreakdown: _rewardsBreakdown,
             winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
-            klayPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
+            rewardPerUserPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             countWinnersPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             firstTicketId: currentTicketId,
             firstTicketIdNextLottery: currentTicketId,
-            amountCollectedInKlay: pendingInjectionNextLottery,
+            amountCollected: pendingInjectionNextLottery,
             finalNumber: 0
         });
 
@@ -457,12 +457,12 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     /**
-     * @notice Set KLAY price ticket upper/lower limit
+     * @notice Set price ticket upper/lower limit
      * @dev Only callable by owner
-     * @param _minPriceTicket: minimum price of a ticket in KLAY
-     * @param _maxPriceTicket: maximum price of a ticket in KLAY
+     * @param _minPriceTicket: minimum price of a ticket
+     * @param _maxPriceTicket: maximum price of a ticket
      */
-    function setMinAndMaxTicketPriceInKlay(uint256 _minPriceTicket, uint256 _maxPriceTicket) external onlyOwner {
+    function setMinAndMaxTicketPrice(uint256 _minPriceTicket, uint256 _maxPriceTicket) external onlyOwner {
         require(_minPriceTicket <= _maxPriceTicket, "minPrice must be < maxPrice");
 
         minPriceTicket = _minPriceTicket;
@@ -497,7 +497,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     /**
      * @notice Calculate price of a set of tickets
      * @param _discountDivisor: divisor for the discount
-     * @param _priceTicket price of a ticket (in KLAY)
+     * @param _priceTicket price of a ticket
      * @param _numberTickets number of tickets to buy
      */
     function calculateTotalPriceForBulkTickets(
@@ -656,7 +656,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
             // Compare the two numbers combination, from the end to the beginning
             // If they are equal, return the reward for this bracket
             if (transformNumber(winningTicketNumber, i) == transformNumber(userNumber, i)) {
-                return _lotteries[_lotteryId].klayPerBracket[i - 1];
+                return _lotteries[_lotteryId].rewardPerUserPerBracket[i - 1];
             }
         }
 

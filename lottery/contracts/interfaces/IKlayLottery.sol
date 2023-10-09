@@ -50,7 +50,7 @@ interface IKlayLottery {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _priceTicketInKlay: price of a ticket in KLAY
+     * @param _priceTicket: price of a ticket in KLAY
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
      * @param _winnersPortion: winners portion (10,000 = 100%, 100 = 1%)
@@ -58,7 +58,7 @@ interface IKlayLottery {
      */
     function startLottery(
         uint256 _endTime,
-        uint256 _priceTicketInKlay,
+        uint256 _priceTicket,
         uint256 _discountDivisor,
         uint256[6] calldata _rewardsBreakdown,
         uint256 _winnersPortion,
