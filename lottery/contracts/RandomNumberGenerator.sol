@@ -36,7 +36,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
         require(latestRequestId == requestId, "Wrong requestId");
         // Generate random value between 1 and 50.
         randomResult = uint32(1000000 + (randomWords[0] % 1000000));
-        latestLotteryId = IKlayLottery(klayLottery).viewCurrentLotteryId();
+        latestLotteryId = IKlayLottery(klayLottery).currentLotteryId();
     }
 
     function estimateFee() external view returns (uint256) {

@@ -7,14 +7,14 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./interfaces/IRandomNumberGenerator.sol";
 import "./interfaces/IKlayLottery.sol";
+import "./interfaces/IRandomNumberGenerator.sol";
 
 /** @title Klay Lottery.
  * @notice It is a contract for a lottery system using
  * randomness provided externally.
  */
-contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
+contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
@@ -156,7 +156,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function buyTickets(
         uint256 _lotteryId,
         uint32[] calldata _ticketNumbers
-    ) external payable override notContract nonReentrant {
+    ) external payable notContract nonReentrant {
         require(_ticketNumbers.length != 0, "No ticket specified");
         require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
 
@@ -198,10 +198,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @param _ticketIds: array of ticket ids
      * @dev Callable by users only, not contract!
      */
-    function claimTickets(
-        uint256 _lotteryId,
-        uint256[] calldata _ticketIds
-    ) external override notContract nonReentrant {
+    function claimTickets(uint256 _lotteryId, uint256[] calldata _ticketIds) external notContract nonReentrant {
         require(_ticketIds.length != 0, "Length must be >0");
         require(_ticketIds.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
         requireClaimable(_lotteryId);
@@ -236,7 +233,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @param _lotteryId: lottery id
      * @dev Callable by operator
      */
-    function closeLottery(uint256 _lotteryId) external override onlyOperator nonReentrant {
+    function closeLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
         require(block.timestamp > _lotteries[_lotteryId].endTime, "Lottery not over");
         _lotteries[_lotteryId].firstTicketIdNextLottery = currentTicketId;
@@ -316,7 +313,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     function drawFinalNumberAndMakeLotteryClaimable(
         uint256 _lotteryId,
         bool _autoInjection
-    ) external override onlyOperator nonReentrant {
+    ) external onlyOperator nonReentrant {
         require(_lotteries[_lotteryId].status == Status.Close, "Lottery not close");
         require(_lotteryId == randomGenerator.viewLatestLotteryId(), "Numbers not drawn");
 
@@ -329,7 +326,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 _lotteryId,
         bool _autoInjection,
         uint32 _finalNumber
-    ) external override onlyOperator nonReentrant {
+    ) external onlyOperator nonReentrant {
         require(_lotteries[_lotteryId].status == Status.Close, "Lottery not close");
         requireValidTicketNumber(_finalNumber);
         makeLotteryClaimable(_lotteryId, _autoInjection, _finalNumber);
@@ -363,7 +360,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
      * @param _lotteryId: lottery id
      * @dev Callable by owner or injector address
      */
-    function injectFunds(uint256 _lotteryId) external payable override onlyOwnerOrInjector {
+    function injectFunds(uint256 _lotteryId) external payable onlyOwnerOrInjector {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
 
         uint256 amount = msg.value;
@@ -388,7 +385,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256[6] calldata _rewardsBreakdown,
         uint256 _winnersPortion,
         uint256 _burnPortion
-    ) external override onlyOperator {
+    ) external onlyOperator {
         if (currentLotteryId != 0) {
             require(!isClaimable(currentLotteryId), "Not time to start lottery");
         }
@@ -521,20 +518,6 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
     }
 
     /**
-     * @notice View current lottery id
-     */
-    function viewCurrentLotteryId() external view override returns (uint256) {
-        return currentLotteryId;
-    }
-
-    /**
-     * @notice View max number of tickets
-     */
-    function viewMaxNumberTicketsPerBuyOrClaim() external view returns (uint256) {
-        return maxNumberTicketsPerBuyOrClaim;
-    }
-
-    /**
      * @notice View lottery information
      * @param _lotteryId: lottery id
      */
@@ -593,7 +576,7 @@ contract KlayLottery is ReentrancyGuard, IKlayLottery, Ownable {
         uint256 _lotteryId,
         uint256 _cursor,
         uint256 _size
-    ) external view override returns (uint256[] memory, uint32[] memory, bool[] memory, uint256) {
+    ) external view returns (uint256[] memory, uint32[] memory, bool[] memory, uint256) {
         uint256 length = _size;
         uint256 numberTicketsBoughtAtLotteryId = _userTicketIdsPerLotteryId[_user][_lotteryId].length;
 
