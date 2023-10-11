@@ -372,7 +372,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 _burnPortion
     ) external onlyOperator {
         if (currentLotteryId != 0) {
-            require(!isClaimable(currentLotteryId), "Not time to start lottery");
+            require(isClaimable(currentLotteryId), "Not time to start lottery");
         }
 
         require(
