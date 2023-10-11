@@ -155,6 +155,7 @@ describe("Lottery on Testnet", () => {
   const _winnersPortion = "1000";
   const _burnPortion = "8000";
   let endTime: BigInt;
+  let endPromise: Promise<any>;
 
   let lotteryId = BigInt("0");
 
@@ -225,6 +226,7 @@ describe("Lottery on Testnet", () => {
           _burnPortion,
         ],
       ]);
+      endPromise = sleep(Number(_lengthLottery) * 1000);
       const startReceipt = startTx[1];
       const lotteryOpenEvent = findEvent(startReceipt, "LotteryOpen");
       const prevLotteryId = lotteryId;
@@ -279,7 +281,7 @@ describe("Lottery on Testnet", () => {
 
     it("Operator closes lottery", async () => {
       // Wait for lottery to end
-      await sleep(Number(_lengthLottery) * 500);
+      await endPromise;
       await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]);
     });
 

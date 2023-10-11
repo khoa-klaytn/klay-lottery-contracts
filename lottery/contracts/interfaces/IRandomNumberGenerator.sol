@@ -11,10 +11,10 @@ interface IRandomNumberGenerator {
     /**
      * View latest lotteryId numbers
      */
-    function viewLatestLotteryId() external view returns (uint256);
+    function latestLotteryId() external view returns (uint256);
 
     /**
      * Views random result
      */
-    function viewRandomResult() external view returns (uint32);
+    function randomResult() external view returns (uint32);
 }

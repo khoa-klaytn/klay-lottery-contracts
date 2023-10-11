@@ -10,13 +10,13 @@ import {OnlyLotteryable} from "./OnlyLotteryable.sol";
 
 contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyLotteryable {
     ICoordinator COORDINATOR;
+    uint256 public latestLotteryId;
+    uint32 public randomResult;
     bytes32 private keyHash;
     uint32 public callbackGasLimit;
     uint64 private reqCount = 1;
     uint8 private numSubmission = 1;
-    uint256 private latestLotteryId;
     uint256 private latestRequestId;
-    uint32 private randomResult;
 
     constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
         COORDINATOR = ICoordinator(coordinator);
@@ -60,20 +60,6 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
      */
     function requestRandomNumberDirect() external payable override onlyKlayLottery {
         latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, klayLottery);
-    }
-
-    /**
-     * @notice View latestLotteryId
-     */
-    function viewLatestLotteryId() external view override onlyKlayLottery returns (uint256) {
-        return latestLotteryId;
-    }
-
-    /**
-     * @notice View random result
-     */
-    function viewRandomResult() external view override onlyKlayLottery returns (uint32) {
-        return randomResult;
     }
 
     // -------------------- //
