@@ -12,11 +12,9 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
     ICoordinator COORDINATOR;
     uint256 public latestLotteryId;
     uint32 public randomResult;
-    bytes32 private keyHash;
     uint32 public callbackGasLimit;
-    uint64 private reqCount = 1;
-    uint8 private numSubmission = 1;
-    uint256 private latestRequestId;
+    bytes32 internal keyHash;
+    uint256 internal latestRequestId;
 
     constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
         COORDINATOR = ICoordinator(coordinator);
@@ -40,7 +38,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
     }
 
     function estimateFee() external view returns (uint256) {
-        return COORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
+        return COORDINATOR.estimateFee(1, 1, callbackGasLimit);
     }
 
     // ------------------------- //
