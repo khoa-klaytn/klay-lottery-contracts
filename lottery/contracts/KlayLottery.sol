@@ -223,14 +223,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         emit TicketsClaim(msg.sender, reward, _lotteryId, _ticketIds.length);
     }
 
-    /**
-     * @notice Close lottery
-     * @param _lotteryId: lottery id
-     * @dev Callable by operator
-     */
-    function closeLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
-        require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
-        require(block.timestamp > _lotteries[_lotteryId].endTime, "Lottery not over");
+    function _closeLottery(uint256 _lotteryId) internal {
         _lotteries[_lotteryId].firstTicketIdNextLottery = currentTicketId;
 
         // Request a random number from the generator
@@ -242,6 +235,17 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         _lotteries[_lotteryId].status = Status.Close;
 
         emit LotteryClose(_lotteryId, currentTicketId);
+    }
+
+    /**
+     * @notice Close lottery
+     * @param _lotteryId: lottery id
+     * @dev Callable by operator
+     */
+    function closeLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
+        require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
+        require(block.timestamp > _lotteries[_lotteryId].endTime, "Lottery not over");
+        _closeLottery(_lotteryId);
     }
 
     function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber) internal onlyOperator {

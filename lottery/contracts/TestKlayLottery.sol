@@ -11,6 +11,15 @@ contract TestKlayLottery is KlayLottery {
         currentTicketId = 0;
     }
 
+    /**
+     * Closes lottery regardless of endTime
+     * @param _lotteryId Lottery ID
+     */
+    function forceCloseLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
+        require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
+        _closeLottery(_lotteryId);
+    }
+
     function setFinalNumberAndMakeLotteryClaimable(
         uint256 _lotteryId,
         bool _autoInjection,
