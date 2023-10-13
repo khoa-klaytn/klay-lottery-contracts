@@ -25,7 +25,7 @@ contract TestKlayLottery is KlayLottery {
         bool _autoInjection,
         uint32 _finalNumber
     ) external onlyOperator nonReentrant {
-        require(_lotteries[_lotteryId].status == Status.Close, "Lottery not close");
+        requireClose(_lotteryId);
         requireValidTicketNumber(_finalNumber);
         makeLotteryClaimable(_lotteryId, _autoInjection, _finalNumber);
     }
