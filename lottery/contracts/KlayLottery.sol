@@ -6,19 +6,29 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/IKlayLottery.sol";
 import "./interfaces/IRandomNumberGenerator.sol";
 
 error LotteryNotClaimable();
-error LotteryNotOpen();
-error LotteryNotOver();
-error LotteryNotClose();
 error EndTimePast();
 error TicketPriceLow(uint256 min);
 error DiscountDivisorLow(uint256 min);
 error PortionsExceed10000(string name);
+
+error LotteryNotOpen();
+
+error LotteryOver();
+error TicketNumberInvalid(uint32 number);
+error InsufficientFunds(uint256 sending, uint256 demanding);
+
+error LotteryNotOver();
+
+error LotteryNotClose();
 error FinalNumberNotDrawn();
+
+error TicketIdInvalid();
+error TicketNotYours();
+error SendFailed();
 
 /** @title Klay Lottery.
  * @notice It is a contract for a lottery system using
@@ -125,19 +135,21 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     }
 
     function demand(uint256 sending, uint256 demanding) internal pure {
-        require(
-            sending >= demanding,
-            string.concat("Insufficent funds: ", Strings.toString(sending), " < ", Strings.toString(demanding))
-        );
+        if (sending < demanding) {
+            revert InsufficientFunds(sending, demanding);
+        }
     }
 
-    function send(address recipient, uint256 amount) internal returns (bool sent) {
+    function send(address recipient, uint256 amount) internal {
         demand(address(this).balance, amount);
-        sent = payable(recipient).send(amount);
+        bool sent = payable(recipient).send(amount);
+        if (!sent) {
+            revert SendFailed();
+        }
     }
 
-    function burn(uint256 amount) internal returns (bool) {
-        return send(ZERO_ADDRESS, amount);
+    function burn(uint256 amount) internal {
+        send(ZERO_ADDRESS, amount);
     }
 
     receive() external payable {}
@@ -161,8 +173,10 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         require(_ticketNumbers.length != 0, "No ticket specified");
         require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
 
-        require(_lotteries[_lotteryId].status == Status.Open, "Lottery is not open");
-        require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
+        requireOpen(_lotteryId);
+        if (block.timestamp >= _lotteries[_lotteryId].endTime) {
+            revert LotteryOver();
+        }
 
         // Calculate cost of tickets
         uint256 amountToTransfer = _calculateTotalPriceForBulkTickets(
@@ -211,7 +225,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             uint256 thisTicketId = _ticketIds[i];
 
             requireValidTicketId(_lotteryId, thisTicketId);
-            require(msg.sender == _tickets[thisTicketId].owner, "Not the owner");
+            requireTicketOwner(thisTicketId);
 
             // Update the lottery ticket owner to 0x address
             _tickets[thisTicketId].owner = address(0);
@@ -223,8 +237,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         }
 
         // Transfer reward to msg.sender
-        bool sent = send(msg.sender, reward);
-        require(sent, "Failed to send reward");
+        send(msg.sender, reward);
 
         emit TicketsClaim(msg.sender, reward, _lotteryId, _ticketIds.length);
     }
@@ -305,8 +318,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         amountToBurn += (_lotteries[_lotteryId].amountCollected * _lotteries[_lotteryId].burnPortion) / 10000;
 
         // Burn
-        bool burnt = burn(amountToBurn);
-        require(burnt, "Failed to burn");
+        burn(amountToBurn);
 
         emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numWinners);
     }
@@ -360,7 +372,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @dev Callable by owner or injector address
      */
     function injectFunds(uint256 _lotteryId) external payable onlyOwnerOrInjector {
-        require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
+        requireOpen(_lotteryId);
 
         uint256 amount = msg.value;
         _lotteries[_lotteryId].amountCollected += amount;
@@ -478,9 +490,6 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @param _injectorAddress: address of the injector
      */
     function setOperatorAndInjectorAddresses(address _operatorAddress, address _injectorAddress) external onlyOwner {
-        require(_operatorAddress != address(0), "Cannot be zero address");
-        require(_injectorAddress != address(0), "Cannot be zero address");
-
         operatorAddress = payable(_operatorAddress);
         injectorAddress = payable(_injectorAddress);
 
@@ -633,7 +642,9 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     }
 
     function requireValidTicketNumber(uint32 ticketNumber) internal pure {
-        require(ticketNumberIsValid(ticketNumber), "ticketNumber invalid");
+        if (!ticketNumberIsValid(ticketNumber)) {
+            revert TicketNumberInvalid(ticketNumber);
+        }
     }
 
     function ticketIdIsValid(uint256 lotteryId, uint256 ticketId) internal view returns (bool) {
@@ -643,7 +654,15 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     }
 
     function requireValidTicketId(uint256 lotteryId, uint256 ticketId) internal view {
-        require(ticketIdIsValid(lotteryId, ticketId), "ticketId invalid");
+        if (!ticketIdIsValid(lotteryId, ticketId)) {
+            revert TicketIdInvalid();
+        }
+    }
+
+    function requireTicketOwner(uint256 ticketId) internal view {
+        if (msg.sender != _tickets[ticketId].owner) {
+            revert TicketNotYours();
+        }
     }
 
     /**
