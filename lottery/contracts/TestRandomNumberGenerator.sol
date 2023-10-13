@@ -10,6 +10,13 @@ contract TestRandomNumberGenerator is RandomNumberGenerator {
         uint32 _callbackGasLimit
     ) RandomNumberGenerator(coordinator, _keyHash, _callbackGasLimit) {}
 
+    /**
+     * @notice Request random number using Temporary Account
+     */
+    function requestRandomNumberDirectTest() external payable {
+        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, klayLottery);
+    }
+
     function viewKeyHash() external view returns (bytes32) {
         return keyHash;
     }
