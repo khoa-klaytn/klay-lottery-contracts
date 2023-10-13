@@ -10,6 +10,12 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/IKlayLottery.sol";
 import "./interfaces/IRandomNumberGenerator.sol";
 
+error CurrentLotteryNotClaimable();
+error EndTimePast();
+error TicketPriceLow(uint256 min);
+error DiscountDivisorLow(uint256 min);
+error PortionsExceed10000(string name);
+
 /** @title Klay Lottery.
  * @notice It is a contract for a lottery system using
  * randomness provided externally.
@@ -25,15 +31,11 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     uint256 public currentTicketId;
 
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
-
-    uint256 public maxPriceTicket = 1000 ether;
     uint256 public minPriceTicket = 1 ether;
 
     uint256 public pendingInjectionNextLottery;
 
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
-    uint256 public constant MIN_LENGTH_LOTTERY = 1 seconds;
-    uint256 public constant MAX_LENGTH_LOTTERY = 30 days + 10 minutes;
 
     IRandomNumberGenerator public randomGenerator;
 
@@ -50,7 +52,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 endTime;
         uint256 priceTicket;
         uint256 discountDivisor;
-        uint256[6] rewardsBreakdown; // 0: 1 matching number // 5: 6 matching numbers
+        uint256[6] rewardPortions; // 0: 1 matching number // 5: 6 matching numbers
         uint256 winnersPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256 burnPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256[6] rewardPerUserPerBracket;
@@ -263,7 +265,7 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             uint8 bracket = i - 1;
             uint32 transformedWinningNumber = transformNumber(_finalNumber, i);
             uint256 bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
-            uint256 bracketReward = _lotteries[_lotteryId].rewardsBreakdown[bracket];
+            uint256 bracketReward = _lotteries[_lotteryId].rewardPortions[bracket];
             uint256 bracketAmountToShare = (amountToShareToWinners * bracketReward) / 10000;
 
             _lotteries[_lotteryId].countWinnersPerBracket[bracket] = bracketNumWinners;
@@ -364,41 +366,42 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @param _endTime: endTime of the lottery
      * @param _priceTicket: price of a ticket
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
-     * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
+     * @param _winnersPortion: winners portion (10,000 = 100%, 100 = 1%)
      * @param _burnPortion: burn portion (10,000 = 100%, 100 = 1%)
+     * @param _rewardPortions: portion of rewards per bracket
      */
     function startLottery(
         uint256 _endTime,
         uint256 _priceTicket,
         uint256 _discountDivisor,
-        uint256[6] calldata _rewardsBreakdown,
         uint256 _winnersPortion,
-        uint256 _burnPortion
+        uint256 _burnPortion,
+        uint256[6] calldata _rewardPortions
     ) external onlyOperator {
         if (currentLotteryId != 0) {
-            require(isClaimable(currentLotteryId), "Not time to start lottery");
+            requireClaimable(currentLotteryId);
         }
 
-        require(
-            ((_endTime - block.timestamp) > MIN_LENGTH_LOTTERY) && ((_endTime - block.timestamp) < MAX_LENGTH_LOTTERY),
-            "Lottery length outside of range"
-        );
+        if (_endTime < block.timestamp) {
+            revert EndTimePast();
+        }
 
-        require((_priceTicket >= minPriceTicket) && (_priceTicket <= maxPriceTicket), "Outside of limits");
+        if (_priceTicket < minPriceTicket) {
+            revert TicketPriceLow(minPriceTicket);
+        }
 
-        require(_discountDivisor >= MIN_DISCOUNT_DIVISOR, "Discount divisor too low");
+        if (_discountDivisor < MIN_DISCOUNT_DIVISOR) {
+            revert DiscountDivisorLow(MIN_DISCOUNT_DIVISOR);
+        }
 
-        require(
-            (_rewardsBreakdown[0] +
-                _rewardsBreakdown[1] +
-                _rewardsBreakdown[2] +
-                _rewardsBreakdown[3] +
-                _rewardsBreakdown[4] +
-                _rewardsBreakdown[5]) == 10000,
-            "Rewards must equal 10000"
-        );
+        requireValidPortions("winners & burn", _winnersPortion + _burnPortion);
 
-        require(_winnersPortion + _burnPortion <= 9000, "Winners + burn must be <= 9000");
+        uint256 rewardPortionsTotal = 0;
+        uint256 rewardPortionsLength = _rewardPortions.length;
+        for (uint256 i = 0; i < rewardPortionsLength; ++i) {
+            rewardPortionsTotal += _rewardPortions[i];
+        }
+        requireValidPortions("rewards", rewardPortionsTotal);
 
         currentLotteryId++;
 
@@ -408,9 +411,9 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             endTime: _endTime,
             priceTicket: _priceTicket,
             discountDivisor: _discountDivisor,
-            rewardsBreakdown: _rewardsBreakdown,
             winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
+            rewardPortions: _rewardPortions,
             rewardPerUserPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             countWinnersPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             firstTicketId: currentTicketId,
@@ -443,16 +446,12 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     }
 
     /**
-     * @notice Set price ticket upper/lower limit
+     * @notice Set price ticket lower limit
      * @dev Only callable by owner
      * @param _minPriceTicket: minimum price of a ticket
-     * @param _maxPriceTicket: maximum price of a ticket
      */
-    function setMinAndMaxTicketPrice(uint256 _minPriceTicket, uint256 _maxPriceTicket) external onlyOwner {
-        require(_minPriceTicket <= _maxPriceTicket, "minPrice must be < maxPrice");
-
+    function setMinTicketPrice(uint256 _minPriceTicket) external onlyOwner {
         minPriceTicket = _minPriceTicket;
-        maxPriceTicket = _maxPriceTicket;
     }
 
     /**
@@ -598,7 +597,15 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     }
 
     function requireClaimable(uint256 _lotteryId) internal view {
-        require(isClaimable(_lotteryId), "Not claimable");
+        if (!isClaimable(_lotteryId)) {
+            revert CurrentLotteryNotClaimable();
+        }
+    }
+
+    function requireValidPortions(string memory name, uint256 total) internal pure {
+        if (total > 10000) {
+            revert PortionsExceed10000(name);
+        }
     }
 
     function ticketNumberIsValid(uint32 ticketNumber) internal pure returns (bool) {
