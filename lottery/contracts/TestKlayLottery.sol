@@ -16,7 +16,7 @@ contract TestKlayLottery is KlayLottery {
      * @param _lotteryId Lottery ID
      */
     function forceCloseLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
-        require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
+        requireOpen(_lotteryId);
         _closeLottery(_lotteryId);
     }
 

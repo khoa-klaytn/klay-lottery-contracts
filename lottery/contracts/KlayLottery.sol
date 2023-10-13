@@ -11,6 +11,8 @@ import "./interfaces/IKlayLottery.sol";
 import "./interfaces/IRandomNumberGenerator.sol";
 
 error LotteryNotClaimable();
+error LotteryNotOpen();
+error LotteryNotOver();
 error LotteryNotClose();
 error EndTimePast();
 error TicketPriceLow(uint256 min);
@@ -247,8 +249,10 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @dev Callable by operator
      */
     function closeLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
-        require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
-        require(block.timestamp > _lotteries[_lotteryId].endTime, "Lottery not over");
+        requireOpen(_lotteryId);
+        if (block.timestamp < _lotteries[_lotteryId].endTime) {
+            revert LotteryNotOver();
+        }
         _closeLottery(_lotteryId);
     }
 
@@ -603,6 +607,12 @@ contract KlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     function requireClaimable(uint256 _lotteryId) internal view {
         if (!isClaimable(_lotteryId)) {
             revert LotteryNotClaimable();
+        }
+    }
+
+    function requireOpen(uint256 _lotteryId) internal view {
+        if (_lotteries[_lotteryId].status != Status.Open) {
+            revert LotteryNotOpen();
         }
     }
 
