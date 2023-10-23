@@ -588,8 +588,8 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             }
         }
 
-        // No matching numbers, return 0
-        return 0;
+        // No matching numbers, return allWinners reward
+        return lottery.rewardPerUserPerBracket[0];
     }
 
     /**

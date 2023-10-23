@@ -290,7 +290,7 @@ describe("Lottery on Testnet", () => {
   // ---- //
   describe("Basic flow", () => {
     const _lengthLottery = 20n;
-    const _rewardPortions = ["200", "300", "500", "1500", "2500", "5000"];
+    const _rewardPortions = ["1000", "1125", "1250", "1375", "1625", "2625"]; // allWinners get 1000
 
     const finalNumber = "234561";
     const objAccountTicketIds = {
