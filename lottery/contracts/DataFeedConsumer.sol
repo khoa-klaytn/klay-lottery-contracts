@@ -5,6 +5,8 @@ import {IAggregator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IAggrega
 import {OnlyLotteryable} from "./OnlyLotteryable.sol";
 import {IDataFeedConsumer} from "./interfaces/IDataFeedConsumer.sol";
 
+error AnswerNonPositive();
+
 contract DataFeedConsumer is IDataFeedConsumer, OnlyLotteryable {
     IAggregator internal dataFeed;
 
@@ -12,9 +14,16 @@ contract DataFeedConsumer is IDataFeedConsumer, OnlyLotteryable {
         dataFeed = IAggregator(aggregatorProxy);
     }
 
-    function getLatestData() external view onlyKlayLottery returns (int256, uint8) {
+    function getLatestData() external view onlyKlayLottery returns (uint256, uint8) {
         (, int256 answer_, , , ) = dataFeed.latestRoundData();
+        requirePositive(answer_);
         uint8 decimals_ = dataFeed.decimals();
-        return (answer_, decimals_);
+        return (uint256(answer_), decimals_);
+    }
+
+    function requirePositive(int256 answer) internal pure {
+        if (answer <= 0) {
+            revert AnswerNonPositive();
+        }
     }
 }
