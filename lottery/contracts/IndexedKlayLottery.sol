@@ -276,53 +276,69 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber) internal onlyOperator {
         uint256 numWinners;
 
-        // Calculate the amount to share post-burn fee
-        uint256 amountToShareToWinners = (_lotteries[_lotteryId].amountCollected *
-            _lotteries[_lotteryId].winnersPortion) / MAX_PORTION;
+        {
+            Lottery memory lottery = _lotteries[_lotteryId];
+            uint256 amountToBurn;
+            {
+                // Calculate the amount to share post-burn fee
+                uint256 amountToShareToWinners = (lottery.amountCollected * lottery.winnersPortion) / MAX_PORTION;
 
-        // Initializes the amount to burn
-        uint256 amountToBurn;
+                // Calculate prizes for each bracket by starting from the highest one
+                for (uint8 i = lottery.numBrackets; i != 0; i--) {
+                    uint256 bracketNumWinners;
+                    {
+                        uint32 transformedFinalNumber = transformNumber(_finalNumber, i);
+                        bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedFinalNumber];
+                    }
+                    uint256 rewardPortion = lottery.rewardPortions[i];
+                    uint256 bracketAmountToShare = (amountToShareToWinners * rewardPortion) / MAX_PORTION;
 
-        // Calculate prizes for each bracket by starting from the highest one
-        for (uint8 i = 6; i != 0; i--) {
-            uint8 bracket = i - 1;
-            uint32 transformedWinningNumber = transformNumber(_finalNumber, i);
-            uint256 bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
-            uint256 bracketReward = _lotteries[_lotteryId].rewardPortions[bracket];
-            uint256 bracketAmountToShare = (amountToShareToWinners * bracketReward) / MAX_PORTION;
+                    _lotteries[_lotteryId].countWinnersPerBracket[i] = bracketNumWinners;
 
-            _lotteries[_lotteryId].countWinnersPerBracket[bracket] = bracketNumWinners;
+                    // A. If number of users for this _bracket number is superior to 0
+                    if (bracketNumWinners != 0) {
+                        // B. If rewards at this bracket are > 0, calculate, else,
+                        // report the numberAddresses from previous bracket
+                        if (rewardPortion != 0) {
+                            _lotteries[_lotteryId].rewardPerUserPerBracket[i] =
+                                bracketAmountToShare /
+                                bracketNumWinners;
+                        }
 
-            // A. If number of users for this _bracket number is superior to 0
-            if (bracketNumWinners != 0) {
-                // B. If rewards at this bracket are > 0, calculate, else,
-                // report the numberAddresses from previous bracket
-                if (bracketReward != 0) {
-                    _lotteries[_lotteryId].rewardPerUserPerBracket[bracket] = bracketAmountToShare / bracketNumWinners;
+                        numWinners += bracketNumWinners;
+                        // A. No winners to distribute to, reward is added to the amount to burn
+                    } else {
+                        amountToBurn += bracketAmountToShare;
+                    }
                 }
-
-                numWinners += bracketNumWinners;
-                // A. No winners to distribute to, reward is added to the amount to burn
-            } else {
-                _lotteries[_lotteryId].rewardPerUserPerBracket[bracket] = 0;
-
-                amountToBurn += bracketAmountToShare;
+                {
+                    uint16 allWinnersPortion = lottery.rewardPortions[0];
+                    if (allWinnersPortion != 0) {
+                        uint256 bracketNumWinners = lottery.firstTicketIdNextLottery - lottery.firstTicketId;
+                        if (bracketNumWinners != 0) {
+                            uint256 bracketAmountToShare = (amountToShareToWinners * allWinnersPortion) / MAX_PORTION;
+                            _lotteries[_lotteryId].countWinnersPerBracket[0] = bracketNumWinners;
+                            _lotteries[_lotteryId].rewardPerUserPerBracket[0] =
+                                bracketAmountToShare /
+                                bracketNumWinners;
+                        }
+                    }
+                }
             }
+
+            // Update internal statuses for lottery
+            _lotteries[_lotteryId].finalNumber = _finalNumber;
+            _lotteries[_lotteryId].status = Status.Claimable;
+
+            if (_autoInjection) {
+                pendingInjectionNextLottery = amountToBurn;
+                amountToBurn = 0;
+            }
+
+            // Burn
+            amountToBurn += (lottery.amountCollected * lottery.burnPortion) / MAX_PORTION;
+            burn(amountToBurn);
         }
-
-        // Update internal statuses for lottery
-        _lotteries[_lotteryId].finalNumber = _finalNumber;
-        _lotteries[_lotteryId].status = Status.Claimable;
-
-        if (_autoInjection) {
-            pendingInjectionNextLottery = amountToBurn;
-            amountToBurn = 0;
-        }
-
-        amountToBurn += (_lotteries[_lotteryId].amountCollected * _lotteries[_lotteryId].burnPortion) / MAX_PORTION;
-
-        // Burn
-        burn(amountToBurn);
 
         emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numWinners);
     }
@@ -559,16 +575,16 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      */
     function _calculateRewardsForTicketId(uint256 _lotteryId, uint256 _ticketId) internal view returns (uint256) {
         // Retrieve the winning number combination
-        uint32 winningTicketNumber = _lotteries[_lotteryId].finalNumber;
+        Lottery memory lottery = _lotteries[_lotteryId];
 
         // Retrieve the user number combination from the ticketId
         uint32 userNumber = _tickets[_ticketId].number;
 
-        for (uint8 i = 6; i != 0; i--) {
+        for (uint8 i = lottery.numBrackets; i != 0; i--) {
             // Compare the two numbers combination, from the end to the beginning
             // If they are equal, return the reward for this bracket
-            if (transformNumber(winningTicketNumber, i) == transformNumber(userNumber, i)) {
-                return _lotteries[_lotteryId].rewardPerUserPerBracket[i - 1];
+            if (transformNumber(lottery.finalNumber, i) == transformNumber(userNumber, i)) {
+                return lottery.rewardPerUserPerBracket[i];
             }
         }
 
