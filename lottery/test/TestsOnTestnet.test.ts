@@ -167,7 +167,7 @@ describe("Lottery on Testnet", () => {
   // Setup //
   // ----- //
   const contractPromises = Object.entries(contractsConfig).map(async ([name, { address, artifact }]) => {
-    const artifactJson = (await import(artifact)).default;
+    const { default: artifactJson } = await import(artifact, { assert: { type: "json" } });
     const abiInterface = new ethers.Interface(artifactJson.abi);
     contracts[name] = {
       abi: abiInterface,
@@ -177,22 +177,20 @@ describe("Lottery on Testnet", () => {
       contracts[name].contract = new ethers.Contract(address, abiInterface, provider);
     } else {
       contracts[name].bytecode = artifactJson.bytecode;
+      throw Error();
     }
   });
 
   before(async () => {
-    if (!contractsConfig.RandomNumberGenerator.address)
-      contractsConfig.RandomNumberGenerator.address = await deployContract("RandomNumberGenerator", [
+    const [rngResult, klayLotteryResult] = await Promise.allSettled(contractPromises);
+    if (rngResult.status === "rejected")
+      await deployContract("RandomNumberGenerator", [
         config.VRFCoordinator.testnet,
         config.KeyHash.testnet,
         config.CallbackGasLimit.testnet,
       ]);
-    if (!contractsConfig.KlayLottery.address)
-      contractsConfig.KlayLottery.address = await deployContract("KlayLottery", [
-        contractsConfig.RandomNumberGenerator.address,
-      ]);
-
-    await Promise.all(contractPromises);
+    if (klayLotteryResult.status === "rejected")
+      await deployContract("KlayLottery", [contractsConfig.RandomNumberGenerator.address]);
 
     await sendFn(["alice", "RandomNumberGenerator", "setLotteryAddress", [contractsConfig.KlayLottery.address]]);
     await sendFn([
@@ -207,10 +205,52 @@ describe("Lottery on Testnet", () => {
   });
 
   describe("startLottery", () => {
-    const _lengthLottery = 20n;
+    before(async () => {
+      const _lengthLottery = 999n;
+      endTime = await EndTime(_lengthLottery);
+    });
+
+    it("rejects descending rewardPortions", async () => {
+      try {
+        await sendFn([
+          "operator",
+          "KlayLottery",
+          "startLottery",
+          [
+            endTime.toString(),
+            _priceTicket.toString(),
+            _discountDivisor,
+            _winnersPortion,
+            _burnPortion,
+            ["1", "3", "2"], // 2 < 3
+          ],
+        ]);
+      } catch (e) {
+        expect(e).instanceOf(Error);
+      }
+    });
+
+    it("rejects if allWinnersRewardPortion < rewardPortions[1]", async () => {
+      try {
+        await sendFn([
+          "operator",
+          "KlayLottery",
+          "startLottery",
+          [
+            endTime.toString(),
+            _priceTicket.toString(),
+            _discountDivisor,
+            _winnersPortion,
+            _burnPortion,
+            ["1", "2", "3"], // 1 + 2 + 3 = 6; 10000 - 6 = 9994; 1 < 9994
+          ],
+        ]);
+      } catch (e) {
+        expect(e).instanceOf(Error);
+      }
+    });
 
     it("rejects too short rewardPortions", async () => {
-      endTime = await EndTime(_lengthLottery);
       try {
         await sendFn([
           "operator",
@@ -225,7 +265,6 @@ describe("Lottery on Testnet", () => {
     });
 
     it("rejects too long rewardPortions", async () => {
-      endTime = await EndTime(_lengthLottery);
       try {
         await sendFn([
           "operator",
