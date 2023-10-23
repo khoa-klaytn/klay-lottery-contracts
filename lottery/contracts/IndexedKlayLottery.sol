@@ -13,6 +13,7 @@ error LotteryNotClaimable();
 error EndTimePast();
 error TicketPriceLow(uint256 min);
 error DiscountDivisorLow(uint256 min);
+error PortionsInvalidLen();
 error PortionsExceed10000(string name);
 
 error LotteryNotOpen();
@@ -64,11 +65,11 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 endTime;
         uint256 priceTicket;
         uint256 discountDivisor;
-        uint256[6] rewardPortions; // 0: 1 matching number // 5: 6 matching numbers
+        uint256[] rewardPortions; // index: no. of matching numbers; e.g. 0: no matching numbers
         uint256 winnersPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint256 burnPortion; // 500: 5% // 200: 2% // 50: 0.5%
-        uint256[6] rewardPerUserPerBracket;
-        uint256[6] countWinnersPerBracket;
+        uint256[] rewardPerUserPerBracket;
+        uint256[] countWinnersPerBracket;
         uint256 firstTicketId;
         uint256 firstTicketIdNextLottery;
         uint256 amountCollected;
@@ -359,7 +360,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 _discountDivisor,
         uint256 _winnersPortion,
         uint256 _burnPortion,
-        uint256[6] calldata _rewardPortions
+        uint256[] memory _rewardPortions
     ) external onlyOperator {
         if (currentLotteryId != 0) {
             requireClaimable(currentLotteryId);
@@ -379,12 +380,21 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
 
         requireValidPortions("winners & burn", _winnersPortion + _burnPortion);
 
+        uint256 rewardPortionsLen = _rewardPortions.length;
+        requireValidPortionsLen(rewardPortionsLen);
+
         uint256 rewardPortionsTotal = 0;
-        uint256 rewardPortionsLength = _rewardPortions.length;
-        for (uint256 i = 0; i < rewardPortionsLength; ++i) {
+        uint256[] memory rewardPerUserPerBracket = new uint256[](rewardPortionsLen);
+        uint256[] memory countWinnersPerBracket = new uint256[](rewardPortionsLen);
+        for (uint256 i = 0; i < rewardPortionsLen; ++i) {
             rewardPortionsTotal += _rewardPortions[i];
+            rewardPerUserPerBracket[i] = 0;
+            countWinnersPerBracket[i] = 0;
         }
         requireValidPortions("rewards", rewardPortionsTotal);
+        _rewardPortions[rewardPortionsLen] = 10000 - rewardPortionsTotal;
+        rewardPerUserPerBracket[rewardPortionsLen] = 0;
+        countWinnersPerBracket[rewardPortionsLen] = 0;
 
         currentLotteryId++;
 
@@ -397,8 +407,8 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
             rewardPortions: _rewardPortions,
-            rewardPerUserPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
-            countWinnersPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
+            rewardPerUserPerBracket: rewardPerUserPerBracket,
+            countWinnersPerBracket: countWinnersPerBracket,
             firstTicketId: currentTicketId,
             firstTicketIdNextLottery: currentTicketId,
             amountCollected: pendingInjectionNextLottery,
@@ -436,6 +446,12 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     function requireClose(uint256 _lotteryId) internal view {
         if (_lotteries[_lotteryId].status != Status.Close) {
             revert LotteryNotClose();
+        }
+    }
+
+    function requireValidPortionsLen(uint256 len) internal pure {
+        if ((len < 3) || (len > 6)) {
+            revert PortionsInvalidLen();
         }
     }
 

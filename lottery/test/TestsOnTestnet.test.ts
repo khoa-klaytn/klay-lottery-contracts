@@ -144,6 +144,10 @@ function sleep(duration: number) {
   return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
+async function EndTime(lengthLottery: bigint) {
+  return BigInt(await time.latest()) + lengthLottery;
+}
+
 describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
@@ -198,13 +202,56 @@ describe("Lottery on Testnet", () => {
       [wallets.operator.address, wallets.injector.address],
     ]);
     await sendFn(["alice", "KlayLottery", "reset"]);
+
+    lotteryId = await contracts.KlayLottery.contract.currentLotteryId();
+  });
+
+  describe("startLottery", () => {
+    const _lengthLottery = 20n;
+
+    it("rejects too short rewardPortions", async () => {
+      endTime = await EndTime(_lengthLottery);
+      try {
+        await sendFn([
+          "operator",
+          "KlayLottery",
+          "startLottery",
+          [endTime.toString(), _priceTicket.toString(), _discountDivisor, _winnersPortion, _burnPortion, ["1", "2"]],
+        ]);
+        throw Error("Was supposed to throw");
+      } catch (e) {
+        expect(e).instanceOf(Error);
+      }
+    });
+
+    it("rejects too long rewardPortions", async () => {
+      endTime = await EndTime(_lengthLottery);
+      try {
+        await sendFn([
+          "operator",
+          "KlayLottery",
+          "startLottery",
+          [
+            endTime.toString(),
+            _priceTicket.toString(),
+            _discountDivisor,
+            _winnersPortion,
+            _burnPortion,
+            ["1", "2", "3", "4", "5", "6", "7"],
+          ],
+        ]);
+        throw Error("Was supposed to throw");
+      } catch (e) {
+        expect(e).instanceOf(Error);
+      }
+    });
   });
 
   // ---- //
   // Test //
   // ---- //
   describe("Basic flow", () => {
-    const _lengthLottery = BigInt("20");
+    const _lengthLottery = 20n;
     const finalNumber = "234561";
     const objAccountTicketIds = {
       bob: [finalNumber],
@@ -212,7 +259,7 @@ describe("Lottery on Testnet", () => {
     };
 
     it("Operator starts lottery", async () => {
-      endTime = BigInt(await time.latest()) + _lengthLottery;
+      endTime = await EndTime(_lengthLottery);
       const startTx = await sendFn([
         "operator",
         "KlayLottery",
