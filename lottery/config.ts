@@ -12,6 +12,10 @@ export default {
     mainnet: "0x6cff5233743b3c0321a19ae11ab38ae0ddc7ddfe1e91b162fa8bb657488fb157",
     testnet: "0xd9af33106d664a53cb9946df5cd81a30695f5b72224ee64e798b278af812779c",
   },
+  DataFeed: {
+    mainnet: "0x33D6ee12D4ADE244100F09b280e159659fe0ACE0",
+    testnet: "0xC874f389A3F49C5331490145f77c4eFE202d72E1",
+  },
   OperatorAddress: {
     // TODO: MUST BE UPDATED WITH ADDRESSES
     mainnet: "0x0000000000000000000000000000000000000000",

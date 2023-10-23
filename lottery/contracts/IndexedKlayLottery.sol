@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IKlayLottery.sol";
+import "./interfaces/IDataFeedConsumer.sol";
 import "./interfaces/IRandomNumberGenerator.sol";
 
 error LotteryNotClaimable();
@@ -52,7 +53,8 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     uint16 public constant MAX_PORTION = 10000;
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
 
-    IRandomNumberGenerator public randomGenerator;
+    IRandomNumberGenerator internal randomGenerator;
+    IDataFeedConsumer internal dataFeed;
 
     enum Status {
         Pending,
@@ -134,8 +136,9 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @dev RandomNumberGenerator must be deployed prior to this contract
      * @param _randomGeneratorAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
-    constructor(address _randomGeneratorAddress) {
+    constructor(address _randomGeneratorAddress, address _dataFeedConsumerAddress) {
         randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
+        dataFeed = IDataFeedConsumer(_dataFeedConsumerAddress);
     }
 
     function demand(uint256 sending, uint256 demanding) internal pure {

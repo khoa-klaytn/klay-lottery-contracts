@@ -4,7 +4,10 @@ pragma solidity ^0.8.16;
 import "./KlayLottery.sol";
 
 contract TestKlayLottery is KlayLottery {
-    constructor(address _randomGeneratorAddress) KlayLottery(_randomGeneratorAddress) {}
+    constructor(
+        address _randomGeneratorAddress,
+        address _dataFeedConsumerAddress
+    ) KlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress) {}
 
     function reset() external onlyOwner {
         currentLotteryId = 0;

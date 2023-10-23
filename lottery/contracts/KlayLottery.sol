@@ -26,7 +26,10 @@ contract KlayLottery is IndexedKlayLottery {
     event NewRandomGenerator(address indexed randomGenerator);
     event AdminTokenRecovery(address token, uint256 amount);
 
-    constructor(address _randomGeneratorAddress) IndexedKlayLottery(_randomGeneratorAddress) {}
+    constructor(
+        address _randomGeneratorAddress,
+        address _dataFeedConsumerAddress
+    ) IndexedKlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress) {}
 
     /**
      * @notice Inject funds

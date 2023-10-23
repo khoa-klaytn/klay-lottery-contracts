@@ -181,15 +181,19 @@ describe("Lottery on Testnet", () => {
   });
 
   before(async () => {
-    const [rngResult, klayLotteryResult] = await Promise.allSettled(contractPromises);
+    const [rngResult, dfcResult, klayLotteryResult] = await Promise.allSettled(contractPromises);
     if (rngResult.status === "rejected")
       await deployContract("RandomNumberGenerator", [
         config.VRFCoordinator.testnet,
         config.KeyHash.testnet,
         config.CallbackGasLimit.testnet,
       ]);
+    if (dfcResult.status === "rejected") await deployContract("DataFeedConsumer", [config.DataFeed.testnet]);
     if (klayLotteryResult.status === "rejected")
-      await deployContract("KlayLottery", [contractsConfig.RandomNumberGenerator.address]);
+      await deployContract("KlayLottery", [
+        contractsConfig.RandomNumberGenerator.address,
+        contractsConfig.DataFeedConsumer.address,
+      ]);
 
     await sendFn(["alice", "RandomNumberGenerator", "setLotteryAddress", [contractsConfig.KlayLottery.address]]);
     await sendFn([
