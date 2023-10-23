@@ -67,6 +67,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 endTime;
         uint256 priceTicket;
         uint256 discountDivisor;
+        uint8 numBrackets;
         uint16[] rewardPortions; // index: no. of matching numbers; e.g. 0: no matching numbers
         uint16 winnersPortion; // 500: 5% // 200: 2% // 50: 0.5%
         uint16 burnPortion; // 500: 5% // 200: 2% // 50: 0.5%
@@ -361,11 +362,10 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     }
 
     function initRewardPortions(
-        uint16[] calldata _rewardPortions
+        uint16[] calldata _rewardPortions,
+        uint8 numBrackets
     ) internal pure returns (uint16[] memory, uint256[] memory, uint256[] memory) {
-        uint256 uncheckedRewardPortionsLen = _rewardPortions.length;
-        requireValidPortionsLen(uncheckedRewardPortionsLen);
-        uint8 rewardPortionsLen = uint8(uncheckedRewardPortionsLen) + 1;
+        uint8 rewardPortionsLen = numBrackets + 1;
 
         uint16[] memory rewardPortions = new uint16[](rewardPortionsLen);
         uint256[] memory rewardPerUserPerBracket = new uint256[](rewardPortionsLen);
@@ -374,7 +374,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint16 rewardPortionsTotal = 0;
 
         uint16 nextRewardPortion = MAX_PORTION;
-        for (uint8 i = rewardPortionsLen - 1; i != 0; i--) {
+        for (uint8 i = numBrackets; i != 0; i--) {
             uint16 rewardPortion = _rewardPortions[i - 1];
             initRewardPortion(
                 rewardPortions,
@@ -438,11 +438,18 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
 
         requireValidPortions("winners & burn", _winnersPortion + _burnPortion);
 
+        // Init Reward Portions
+        uint8 numBrackets;
+        {
+            uint256 uncheckedNumBrackets = _rewardPortions.length;
+            requireValidPortionsLen(uncheckedNumBrackets);
+            numBrackets = uint8(uncheckedNumBrackets);
+        }
         (
             uint16[] memory rewardPortions,
             uint256[] memory rewardPerUserPerBracket,
             uint256[] memory countWinnersPerBracket
-        ) = initRewardPortions(_rewardPortions);
+        ) = initRewardPortions(_rewardPortions, numBrackets);
 
         // Commit
         currentLotteryId++;
@@ -455,6 +462,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             discountDivisor: _discountDivisor,
             winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
+            numBrackets: numBrackets,
             rewardPortions: rewardPortions,
             rewardPerUserPerBracket: rewardPerUserPerBracket,
             countWinnersPerBracket: countWinnersPerBracket,
