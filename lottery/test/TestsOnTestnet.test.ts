@@ -155,7 +155,6 @@ describe("Lottery on Testnet", () => {
   const _priceTicket = ethers.parseEther("1");
   const _discountDivisor = "2000";
 
-  const _rewardPortions = ["200", "300", "500", "1500", "2500", "5000"];
   const _winnersPortion = "1000";
   const _burnPortion = "8000";
   let endTime: BigInt;
@@ -291,6 +290,8 @@ describe("Lottery on Testnet", () => {
   // ---- //
   describe("Basic flow", () => {
     const _lengthLottery = 20n;
+    const _rewardPortions = ["200", "300", "500", "1500", "2500", "5000"];
+
     const finalNumber = "234561";
     const objAccountTicketIds = {
       bob: [finalNumber],
