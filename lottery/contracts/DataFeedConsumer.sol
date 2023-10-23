@@ -9,16 +9,17 @@ error AnswerNonPositive();
 
 contract DataFeedConsumer is IDataFeedConsumer, OnlyLotteryable {
     IAggregator internal dataFeed;
+    uint8 public immutable DECIMALS;
 
     constructor(address aggregatorProxy) {
         dataFeed = IAggregator(aggregatorProxy);
+        DECIMALS = dataFeed.decimals();
     }
 
-    function getLatestData() external view onlyKlayLottery returns (uint256, uint8) {
+    function getLatestData() public view returns (uint256) {
         (, int256 answer_, , , ) = dataFeed.latestRoundData();
         requirePositive(answer_);
-        uint8 decimals_ = dataFeed.decimals();
-        return (uint256(answer_), decimals_);
+        return uint256(answer_);
     }
 
     function requirePositive(int256 answer) internal pure {
