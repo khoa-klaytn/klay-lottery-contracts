@@ -152,7 +152,7 @@ describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _priceTicket = ethers.parseEther("1");
+  const _ticketPrice = ethers.parseEther("1");
   const _discountDivisor = "2000";
 
   const _winnersPortion = "1000";
@@ -222,7 +222,7 @@ describe("Lottery on Testnet", () => {
           "startLottery",
           [
             endTime.toString(),
-            _priceTicket.toString(),
+            _ticketPrice.toString(),
             _discountDivisor,
             _winnersPortion,
             _burnPortion,
@@ -242,7 +242,7 @@ describe("Lottery on Testnet", () => {
           "startLottery",
           [
             endTime.toString(),
-            _priceTicket.toString(),
+            _ticketPrice.toString(),
             _discountDivisor,
             _winnersPortion,
             _burnPortion,
@@ -260,7 +260,7 @@ describe("Lottery on Testnet", () => {
           "operator",
           "KlayLottery",
           "startLottery",
-          [endTime.toString(), _priceTicket.toString(), _discountDivisor, _winnersPortion, _burnPortion, ["1", "2"]],
+          [endTime.toString(), _ticketPrice.toString(), _discountDivisor, _winnersPortion, _burnPortion, ["1", "2"]],
         ]);
         throw Error("Was supposed to throw");
       } catch (e) {
@@ -276,7 +276,7 @@ describe("Lottery on Testnet", () => {
           "startLottery",
           [
             endTime.toString(),
-            _priceTicket.toString(),
+            _ticketPrice.toString(),
             _discountDivisor,
             _winnersPortion,
             _burnPortion,
@@ -309,7 +309,7 @@ describe("Lottery on Testnet", () => {
         "operator",
         "KlayLottery",
         "startLottery",
-        [endTime.toString(), _priceTicket.toString(), _discountDivisor, _winnersPortion, _burnPortion, _rewardPortions],
+        [endTime.toString(), _ticketPrice.toString(), _discountDivisor, _winnersPortion, _burnPortion, _rewardPortions],
       ]);
       endPromise = sleep(Number(_lengthLottery) * 1000);
       const startReceipt = startTx[1];
@@ -326,7 +326,7 @@ describe("Lottery on Testnet", () => {
         "buyTickets",
         [lotteryId, objAccountTicketIds.bob],
         {
-          value: _priceTicket,
+          value: _ticketPrice,
         },
       ]);
       const buyTicketReceipt = buyTicketTx[1];
@@ -359,7 +359,7 @@ describe("Lottery on Testnet", () => {
         "injectFunds",
         [lotteryId],
         {
-          value: _priceTicket,
+          value: _ticketPrice,
         },
       ]);
     });

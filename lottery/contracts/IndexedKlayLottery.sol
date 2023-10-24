@@ -46,7 +46,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     uint256 public currentTicketId;
 
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
-    uint256 public minPriceTicket = 1 ether;
+    uint256 public minTicketPrice = 1 ether;
 
     uint256 public pendingInjectionNextLottery;
 
@@ -67,7 +67,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         Status status;
         uint256 startTime;
         uint256 endTime;
-        uint256 priceTicket;
+        uint256 ticketPrice;
         uint256 discountDivisor;
         uint8 numBrackets;
         uint16[] rewardPortions; // index: no. of matching numbers; e.g. 0: no matching numbers
@@ -122,7 +122,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 indexed lotteryId,
         uint256 startTime,
         uint256 endTime,
-        uint256 priceTicket,
+        uint256 ticketPrice,
         uint256 firstTicketId,
         uint256 injectedAmount
     );
@@ -188,7 +188,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         // Calculate cost of tickets
         uint256 amountToTransfer = _calculateTotalPriceForBulkTickets(
             _lotteries[_lotteryId].discountDivisor,
-            _lotteries[_lotteryId].priceTicket,
+            _lotteries[_lotteryId].ticketPrice,
             _ticketNumbers.length
         );
         demand(msg.value, amountToTransfer);
@@ -425,7 +425,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _priceTicket: price of a ticket
+     * @param _ticketPrice: price of a ticket
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _winnersPortion: winners portion (10,000 = 100%, 100 = 1%)
      * @param _burnPortion: burn portion (10,000 = 100%, 100 = 1%)
@@ -433,7 +433,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      */
     function startLottery(
         uint256 _endTime,
-        uint256 _priceTicket,
+        uint256 _ticketPrice,
         uint256 _discountDivisor,
         uint16 _winnersPortion,
         uint16 _burnPortion,
@@ -447,8 +447,8 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             revert EndTimePast();
         }
 
-        if (_priceTicket < minPriceTicket) {
-            revert TicketPriceLow(minPriceTicket);
+        if (_ticketPrice < minTicketPrice) {
+            revert TicketPriceLow(minTicketPrice);
         }
 
         if (_discountDivisor < MIN_DISCOUNT_DIVISOR) {
@@ -477,7 +477,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             status: Status.Open,
             startTime: block.timestamp,
             endTime: _endTime,
-            priceTicket: _priceTicket,
+            ticketPrice: _ticketPrice,
             discountDivisor: _discountDivisor,
             winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
@@ -495,7 +495,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             currentLotteryId,
             block.timestamp,
             _endTime,
-            _priceTicket,
+            _ticketPrice,
             currentTicketId,
             pendingInjectionNextLottery
         );
@@ -598,14 +598,14 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     /**
      * @notice Calculate final price for bulk of tickets
      * @param _discountDivisor: divisor for the discount (the smaller it is, the greater the discount is)
-     * @param _priceTicket: price of a ticket
+     * @param _ticketPrice: price of a ticket
      * @param _numberTickets: number of tickets purchased
      */
     function _calculateTotalPriceForBulkTickets(
         uint256 _discountDivisor,
-        uint256 _priceTicket,
+        uint256 _ticketPrice,
         uint256 _numberTickets
     ) internal pure returns (uint256) {
-        return (_priceTicket * _numberTickets * (_discountDivisor + 1 - _numberTickets)) / _discountDivisor;
+        return (_ticketPrice * _numberTickets * (_discountDivisor + 1 - _numberTickets)) / _discountDivisor;
     }
 }
