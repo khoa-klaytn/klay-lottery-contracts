@@ -3,5 +3,6 @@
   "bob": "",
   "carol": "",
   "operator": "",
-  "injector": ""
+  "injector": "",
+  "querier": ""
 }

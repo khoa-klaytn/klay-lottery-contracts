@@ -195,7 +195,8 @@ describe("Lottery on Testnet", () => {
         contractsConfig.DataFeedConsumer.address,
       ]);
 
-    await sendFn(["alice", "RandomNumberGenerator", "setLotteryAddress", [contractsConfig.KlayLottery.address]]);
+    for (const contract of ["RandomNumberGenerator", "DataFeedConsumer"] as const)
+      await sendFn(["alice", contract, "setRoles", [contractsConfig.KlayLottery.address, wallets.querier.address]]);
     await sendFn([
       "alice",
       "KlayLottery",

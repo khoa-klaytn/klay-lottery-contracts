@@ -6,14 +6,14 @@ import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepaym
 import {IRandomNumberGenerator} from "./interfaces/IRandomNumberGenerator.sol";
 import {ICoordinator} from "./interfaces/ICoordinator.sol";
 import {IKlayLottery} from "./interfaces/IKlayLottery.sol";
-import {OnlyLotteryable} from "./OnlyLotteryable.sol";
+import {OnlyRoles} from "./OnlyRoles.sol";
 
-contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyLotteryable {
+contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyRoles {
     ICoordinator COORDINATOR;
     uint256 public latestLotteryId;
     uint32 public randomResult;
-    uint32 public callbackGasLimit;
     bytes32 internal keyHash;
+    uint32 internal callbackGasLimit;
     uint256 internal latestRequestId;
 
     constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
@@ -58,6 +58,22 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyL
      */
     function requestRandomNumberDirect() external payable override onlyKlayLottery {
         latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, klayLottery);
+    }
+
+    // --------------------- //
+    // onlyQuerier functions //
+    // --------------------- //
+
+    function queryKeyHash() external view onlyQuerier returns (bytes32) {
+        return keyHash;
+    }
+
+    function queryCallbackGasLimit() external view onlyQuerier returns (uint32) {
+        return callbackGasLimit;
+    }
+
+    function queryLatestLotteryId() external view onlyQuerier returns (uint256) {
+        return latestLotteryId;
     }
 
     // -------------------- //
