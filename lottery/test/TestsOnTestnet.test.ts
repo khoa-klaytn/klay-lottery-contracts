@@ -102,7 +102,7 @@ async function _sendFn(
   } else {
     response = await fn(...args);
   }
-  console.info(`Transaction sent: ${response.hash}`);
+  console.info(`${contractName}.${functionName}@${accountName}: ${response.hash}`);
   return response;
 }
 
