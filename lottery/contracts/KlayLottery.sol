@@ -28,8 +28,9 @@ contract KlayLottery is IndexedKlayLottery {
 
     constructor(
         address _randomGeneratorAddress,
-        address _dataFeedConsumerAddress
-    ) IndexedKlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress) {}
+        address _dataFeedConsumerAddress,
+        uint256 _minTicketPriceInUsd
+    ) IndexedKlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
 
     /**
      * @notice Inject funds
@@ -77,15 +78,6 @@ contract KlayLottery is IndexedKlayLottery {
     function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
         IERC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
         emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
-    }
-
-    /**
-     * @notice Set price ticket lower limit
-     * @dev Only callable by owner
-     * @param _minTicketPrice: minimum price of a ticket
-     */
-    function setMinTicketPrice(uint256 _minTicketPrice) external onlyOwner {
-        minTicketPrice = _minTicketPrice;
     }
 
     /**

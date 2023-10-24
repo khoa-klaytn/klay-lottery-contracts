@@ -148,19 +148,32 @@ async function EndTime(lengthLottery: bigint) {
   return BigInt(await time.latest()) + lengthLottery;
 }
 
+function catchCustomErr(contractName: ContractName) {
+  function catchCustomErr(err) {
+    if (err instanceof Error) {
+      if ("data" in err && ethers.isBytesLike(err.data)) {
+        const customErr = contracts[contractName].abi.parseError(err.data);
+        console.error(customErr);
+      }
+    }
+    throw err;
+  }
+  return catchCustomErr;
+}
+
 describe("Lottery on Testnet", () => {
   // --------- //
   // Constants //
   // --------- //
-  const _ticketPrice = ethers.parseEther("1");
   const _discountDivisor = "2000";
 
   const _winnersPortion = "1000";
   const _burnPortion = "8000";
+  let ticketPriceInUsd: bigint;
   let endTime: BigInt;
   let endPromise: Promise<any>;
 
-  let lotteryId = BigInt("0");
+  let lotteryId = 0n;
 
   // ----- //
   // Setup //
@@ -180,7 +193,9 @@ describe("Lottery on Testnet", () => {
     }
   });
 
-  before(async () => {
+  before(async function () {
+    this.timeout(999999);
+
     const [rngResult, dfcResult, klayLotteryResult] = await Promise.allSettled(contractPromises);
     if (rngResult.status === "rejected")
       await deployContract("RandomNumberGenerator", [
@@ -189,14 +204,39 @@ describe("Lottery on Testnet", () => {
         config.CallbackGasLimit.testnet,
       ]);
     if (dfcResult.status === "rejected") await deployContract("DataFeedConsumer", [config.DataFeed.testnet]);
+
+    await sendFn(["alice", "DataFeedConsumer", "setQuerier", [wallets.querier.address]]);
+
+    const dataFeedQuerier = contracts.DataFeedConsumer.contract.connect(wallets.querier);
+    let klay2usd: bigint;
+    let baseUsd: number;
+    await Promise.all([
+      (async () => {
+        klay2usd = BigInt(await dataFeedQuerier["queryLatestData"]());
+      })(),
+      (async () => {
+        baseUsd = Number(await dataFeedQuerier["queryBaseUsd"]());
+      })(),
+    ]);
+    console.log(`klay2usd: ${klay2usd}`);
+    console.log(`baseUsd: ${baseUsd}`);
+    const minTicketPriceInUsd = BigInt(Math.round(0.005 * baseUsd));
+    ticketPriceInUsd = BigInt(Math.round(0.1 * baseUsd));
+
     if (klayLotteryResult.status === "rejected")
       await deployContract("KlayLottery", [
         contractsConfig.RandomNumberGenerator.address,
         contractsConfig.DataFeedConsumer.address,
+        minTicketPriceInUsd,
       ]);
+    await sendFn(["alice", "DataFeedConsumer", "setKlayLottery", [contractsConfig.KlayLottery.address]]);
+    await sendFn([
+      "alice",
+      "RandomNumberGenerator",
+      "setRoles",
+      [contractsConfig.KlayLottery.address, wallets.querier.address],
+    ]);
 
-    for (const contract of ["RandomNumberGenerator", "DataFeedConsumer"] as const)
-      await sendFn(["alice", contract, "setRoles", [contractsConfig.KlayLottery.address, wallets.querier.address]]);
     await sendFn([
       "alice",
       "KlayLottery",
@@ -204,8 +244,6 @@ describe("Lottery on Testnet", () => {
       [wallets.operator.address, wallets.injector.address],
     ]);
     await sendFn(["alice", "KlayLottery", "reset"]);
-
-    lotteryId = await contracts.KlayLottery.contract.currentLotteryId();
   });
 
   describe("startLottery", () => {
@@ -221,8 +259,8 @@ describe("Lottery on Testnet", () => {
           "KlayLottery",
           "startLottery",
           [
-            endTime.toString(),
-            _ticketPrice.toString(),
+            endTime,
+            ticketPriceInUsd,
             _discountDivisor,
             _winnersPortion,
             _burnPortion,
@@ -241,8 +279,8 @@ describe("Lottery on Testnet", () => {
           "KlayLottery",
           "startLottery",
           [
-            endTime.toString(),
-            _ticketPrice.toString(),
+            endTime,
+            ticketPriceInUsd,
             _discountDivisor,
             _winnersPortion,
             _burnPortion,
@@ -260,7 +298,7 @@ describe("Lottery on Testnet", () => {
           "operator",
           "KlayLottery",
           "startLottery",
-          [endTime.toString(), _ticketPrice.toString(), _discountDivisor, _winnersPortion, _burnPortion, ["1", "2"]],
+          [endTime, ticketPriceInUsd, _discountDivisor, _winnersPortion, _burnPortion, ["1", "2"]],
         ]);
         throw Error("Was supposed to throw");
       } catch (e) {
@@ -275,8 +313,8 @@ describe("Lottery on Testnet", () => {
           "KlayLottery",
           "startLottery",
           [
-            endTime.toString(),
-            _ticketPrice.toString(),
+            endTime,
+            ticketPriceInUsd,
             _discountDivisor,
             _winnersPortion,
             _burnPortion,
@@ -309,7 +347,7 @@ describe("Lottery on Testnet", () => {
         "operator",
         "KlayLottery",
         "startLottery",
-        [endTime.toString(), _ticketPrice.toString(), _discountDivisor, _winnersPortion, _burnPortion, _rewardPortions],
+        [endTime, ticketPriceInUsd, _discountDivisor, _winnersPortion, _burnPortion, _rewardPortions],
       ]);
       endPromise = sleep(Number(_lengthLottery) * 1000);
       const startReceipt = startTx[1];
@@ -320,15 +358,16 @@ describe("Lottery on Testnet", () => {
     });
 
     it("Bob buys 1 ticket", async () => {
+      const value = await contracts.KlayLottery.contract.calculateCurrentTotalPriceForBulkTickets(
+        objAccountTicketIds.bob.length
+      );
       const buyTicketTx = await sendFn([
         "bob",
         "KlayLottery",
         "buyTickets",
         [lotteryId, objAccountTicketIds.bob],
-        {
-          value: _ticketPrice,
-        },
-      ]);
+        { value },
+      ]).catch(catchCustomErr("KlayLottery"));
       const buyTicketReceipt = buyTicketTx[1];
       const ticketsPurchaseEvent = findEvent(buyTicketReceipt, "TicketsPurchase");
       const nTickets = ticketsPurchaseEvent.args[2];
@@ -337,7 +376,7 @@ describe("Lottery on Testnet", () => {
 
     it("Carol buys 2 tickets", async () => {
       const value = await contracts.KlayLottery.contract.calculateCurrentTotalPriceForBulkTickets(
-        objAccountTicketIds.carol.length.toString()
+        objAccountTicketIds.carol.length
       );
       const buyTicketTx = await sendFn([
         "carol",
@@ -345,7 +384,7 @@ describe("Lottery on Testnet", () => {
         "buyTickets",
         [lotteryId, objAccountTicketIds.carol],
         { value },
-      ]);
+      ]).catch(catchCustomErr("KlayLottery"));
       const buyTicketReceipt = buyTicketTx[1];
       const ticketsPurchaseEvent = findEvent(buyTicketReceipt, "TicketsPurchase");
       const nTickets = ticketsPurchaseEvent.args[2];
@@ -353,21 +392,14 @@ describe("Lottery on Testnet", () => {
     });
 
     it("Injector injects funds", async () => {
-      await sendFn([
-        "injector",
-        "KlayLottery",
-        "injectFunds",
-        [lotteryId],
-        {
-          value: _ticketPrice,
-        },
-      ]);
+      const value = await contracts.KlayLottery.contract.calculateCurrentTotalPriceForBulkTickets(1);
+      await sendFn(["injector", "KlayLottery", "injectFunds", [lotteryId], { value }]);
     });
 
     it("Operator closes lottery", async () => {
       // Wait for lottery to end
       await endPromise;
-      await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]);
+      await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]).catch(catchCustomErr("KlayLottery"));
     });
 
     it("Operator draws lottery", async () => {
@@ -376,7 +408,7 @@ describe("Lottery on Testnet", () => {
         "KlayLottery",
         "setFinalNumberAndMakeLotteryClaimable",
         [lotteryId, true, finalNumber],
-      ]);
+      ]).catch(catchCustomErr("KlayLottery"));
       const receipt = tx[1];
       const lotteryNumberDrawnEvent = findEvent(receipt, "LotteryNumberDrawn");
       const nWinners = lotteryNumberDrawnEvent.args[2];
@@ -392,18 +424,20 @@ describe("Lottery on Testnet", () => {
       );
       const ticketIds = tickets[0].toArray();
       console.info(`Ticket IDs: ${ticketIds}`);
-      const claimTicketsTx = await sendFn([accountName, "KlayLottery", "claimTickets", [lotteryId, ticketIds]]);
+      const claimTicketsTx = await sendFn([accountName, "KlayLottery", "claimTickets", [lotteryId, ticketIds]]).catch(
+        catchCustomErr("KlayLottery")
+      );
       const claimTicketsReceipt = claimTicketsTx[1];
       const ticketsClaimEvent = findEvent(claimTicketsReceipt, "TicketsClaim");
       console.info(`Reward: ${ticketsClaimEvent.args[1]}`);
     }
 
     it("Bob claims his tickets", async () => {
-      await claimTickets("bob", 1);
+      await claimTickets("bob", 1).catch(catchCustomErr("KlayLottery"));
     });
 
     it("Carol claims her tickets", async () => {
-      await claimTickets("carol", 2);
+      await claimTickets("carol", 2).catch(catchCustomErr("KlayLottery"));
     });
   });
 });

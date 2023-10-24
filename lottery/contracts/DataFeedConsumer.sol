@@ -9,11 +9,17 @@ error AnswerNonPositive();
 
 contract DataFeedConsumer is IDataFeedConsumer, OnlyRoles {
     IAggregator internal dataFeed;
-    uint8 internal immutable DECIMALS;
+    uint8 internal constant DECIMALS_CRYPTO = 18;
+    uint8 internal immutable DECIMALS_USD;
+    uint256 internal immutable BASE_CRYPTO = 10 ** DECIMALS_CRYPTO;
+    uint256 internal immutable BASE_USD;
 
     constructor(address aggregatorProxy) {
         dataFeed = IAggregator(aggregatorProxy);
-        DECIMALS = dataFeed.decimals();
+        uint8 decimals_usd = dataFeed.decimals();
+        DECIMALS_USD = decimals_usd;
+        uint256 base_usd = 10 ** DECIMALS_USD;
+        BASE_USD = base_usd;
     }
 
     // ------------------------- //
@@ -32,8 +38,20 @@ contract DataFeedConsumer is IDataFeedConsumer, OnlyRoles {
     // onlyQuerier functions //
     // --------------------- //
 
-    function queryDecimals() external view onlyQuerier returns (uint8) {
-        return DECIMALS;
+    function queryDecimalsCrypto() external view onlyQuerier returns (uint8) {
+        return DECIMALS_CRYPTO;
+    }
+
+    function queryDecimalsUsd() external view onlyQuerier returns (uint8) {
+        return DECIMALS_USD;
+    }
+
+    function queryBaseCrypto() external view onlyQuerier returns (uint256) {
+        return BASE_CRYPTO;
+    }
+
+    function queryBaseUsd() external view onlyQuerier returns (uint256) {
+        return BASE_USD;
     }
 
     function queryLatestData() external view onlyQuerier returns (uint256) {
@@ -51,11 +69,11 @@ contract DataFeedConsumer is IDataFeedConsumer, OnlyRoles {
     }
 
     function _convertCryptoUsd(uint256 crypto) internal view returns (uint256 usd) {
-        usd = (crypto * _getLatestData()) / (10 ** DECIMALS);
+        usd = (crypto * _getLatestData()) / BASE_CRYPTO;
     }
 
     function _convertUsdCrypto(uint256 usd) internal view returns (uint256 crypto) {
-        crypto = (usd * (10 ** DECIMALS)) / _getLatestData();
+        crypto = (usd * BASE_CRYPTO) / _getLatestData();
     }
 
     function requirePositive(int256 answer) internal pure {

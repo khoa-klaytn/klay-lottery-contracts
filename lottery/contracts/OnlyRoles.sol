@@ -5,14 +5,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 error NotKlayLottery();
 error NotQuerier();
+error NotKlayLotteryOrQuerier();
 
 contract OnlyRoles is Ownable {
     address public klayLottery;
     address public querier;
 
     function setRoles(address _klayLottery, address _querier) external onlyOwner {
-        setKlayLotteryAddress(_klayLottery);
-        setQuerierAddress(_querier);
+        setKlayLottery(_klayLottery);
+        setQuerier(_querier);
     }
 
     function requireKlayLottery() private view {
@@ -26,7 +27,7 @@ contract OnlyRoles is Ownable {
         _;
     }
 
-    function setKlayLotteryAddress(address _klayLottery) public onlyOwner {
+    function setKlayLottery(address _klayLottery) public onlyOwner {
         klayLottery = _klayLottery;
     }
 
@@ -41,7 +42,14 @@ contract OnlyRoles is Ownable {
         _;
     }
 
-    function setQuerierAddress(address _querier) public onlyOwner {
+    function setQuerier(address _querier) public onlyOwner {
         querier = _querier;
+    }
+
+    modifier onlyKlayLotteryOrQuerier() {
+        if ((msg.sender != klayLottery) && (msg.sender != querier)) {
+            revert NotKlayLotteryOrQuerier();
+        }
+        _;
     }
 }

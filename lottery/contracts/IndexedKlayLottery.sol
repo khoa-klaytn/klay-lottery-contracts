@@ -46,10 +46,10 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     uint256 public currentTicketId;
 
     uint256 public maxNumberTicketsPerBuyOrClaim = 100;
-    uint256 public minTicketPrice = 1 ether;
 
     uint256 public pendingInjectionNextLottery;
 
+    uint256 public immutable MIN_TICKET_PRICE_IN_USD;
     uint16 public constant MAX_PORTION = 10000;
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
 
@@ -136,9 +136,10 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @dev RandomNumberGenerator must be deployed prior to this contract
      * @param _randomGeneratorAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
-    constructor(address _randomGeneratorAddress, address _dataFeedConsumerAddress) {
+    constructor(address _randomGeneratorAddress, address _dataFeedConsumerAddress, uint256 _minTicketPriceInUsd) {
         randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
         dataFeed = IDataFeedConsumer(_dataFeedConsumerAddress);
+        MIN_TICKET_PRICE_IN_USD = _minTicketPriceInUsd;
     }
 
     function demand(uint256 sending, uint256 demanding) internal pure {
@@ -425,7 +426,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _ticketPrice: price of a ticket
+     * @param _ticketPriceInUsd: price of a ticket in USD
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _winnersPortion: winners portion (10,000 = 100%, 100 = 1%)
      * @param _burnPortion: burn portion (10,000 = 100%, 100 = 1%)
@@ -433,7 +434,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
      */
     function startLottery(
         uint256 _endTime,
-        uint256 _ticketPrice,
+        uint256 _ticketPriceInUsd,
         uint256 _discountDivisor,
         uint16 _winnersPortion,
         uint16 _burnPortion,
@@ -447,8 +448,8 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             revert EndTimePast();
         }
 
-        if (_ticketPrice < minTicketPrice) {
-            revert TicketPriceLow(minTicketPrice);
+        if (_ticketPriceInUsd < MIN_TICKET_PRICE_IN_USD) {
+            revert TicketPriceLow(MIN_TICKET_PRICE_IN_USD);
         }
 
         if (_discountDivisor < MIN_DISCOUNT_DIVISOR) {
@@ -470,6 +471,8 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             uint256[] memory countWinnersPerBracket
         ) = initRewardPortions(_rewardPortions, numBrackets);
 
+        // Convert price to crypto
+        uint256 ticketPrice = dataFeed.convertUsdCrypto(_ticketPriceInUsd);
         // Commit
         currentLotteryId++;
 
@@ -477,7 +480,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             status: Status.Open,
             startTime: block.timestamp,
             endTime: _endTime,
-            ticketPrice: _ticketPrice,
+            ticketPrice: ticketPrice,
             discountDivisor: _discountDivisor,
             winnersPortion: _winnersPortion,
             burnPortion: _burnPortion,
@@ -495,7 +498,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             currentLotteryId,
             block.timestamp,
             _endTime,
-            _ticketPrice,
+            ticketPrice,
             currentTicketId,
             pendingInjectionNextLottery
         );

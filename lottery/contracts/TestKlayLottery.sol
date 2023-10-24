@@ -6,8 +6,9 @@ import "./KlayLottery.sol";
 contract TestKlayLottery is KlayLottery {
     constructor(
         address _randomGeneratorAddress,
-        address _dataFeedConsumerAddress
-    ) KlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress) {}
+        address _dataFeedConsumerAddress,
+        uint256 _minTicketPriceInUsd
+    ) KlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, MIN_TICKET_PRICE_IN_USD) {}
 
     function reset() external onlyOwner {
         currentLotteryId = 0;
