@@ -194,8 +194,6 @@ describe("Lottery on Testnet", () => {
   });
 
   before(async function () {
-    this.timeout(999999);
-
     const [rngResult, dfcResult, klayLotteryResult] = await Promise.allSettled(contractPromises);
     if (rngResult.status === "rejected")
       await deployContract("RandomNumberGenerator", [
@@ -351,7 +349,6 @@ describe("Lottery on Testnet", () => {
         "startLottery",
         [endTime, ticketPriceInUsd, _discountDivisor, _winnersPortion, _burnPortion, _rewardPortions],
       ]);
-      endPromise = sleep(Number(_lengthLottery) * 1000);
       const startReceipt = startTx[1];
       const lotteryOpenEvent = findEvent(startReceipt, "LotteryOpen");
       const prevLotteryId = lotteryId;
@@ -400,7 +397,6 @@ describe("Lottery on Testnet", () => {
 
     it("Operator closes lottery", async () => {
       // Wait for lottery to end
-      await endPromise;
       await sendFn(["operator", "KlayLottery", "forceCloseLottery", [lotteryId]]).catch(catchCustomErr("KlayLottery"));
     });
 
