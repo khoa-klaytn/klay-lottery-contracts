@@ -267,6 +267,7 @@ describe("Lottery on Testnet", () => {
             ["1", "3", "2"], // 2 < 3
           ],
         ]);
+        throw Error("Was supposed to throw");
       } catch (e) {
         expect(e).instanceOf(Error);
       }
@@ -287,6 +288,7 @@ describe("Lottery on Testnet", () => {
             ["1", "2", "3"], // 1 + 2 + 3 = 6; 10000 - 6 = 9994; 1 < 9994
           ],
         ]);
+        throw Error("Was supposed to throw");
       } catch (e) {
         expect(e).instanceOf(Error);
       }
@@ -332,7 +334,7 @@ describe("Lottery on Testnet", () => {
   // Test //
   // ---- //
   describe("Basic flow", () => {
-    const _lengthLottery = 20n;
+    const _lengthLottery = 999n;
     const _rewardPortions = ["1000", "1125", "1250", "1375", "1625", "2625"]; // allWinners get 1000
 
     const finalNumber = "234561";
@@ -399,7 +401,7 @@ describe("Lottery on Testnet", () => {
     it("Operator closes lottery", async () => {
       // Wait for lottery to end
       await endPromise;
-      await sendFn(["operator", "KlayLottery", "closeLottery", [lotteryId]]).catch(catchCustomErr("KlayLottery"));
+      await sendFn(["operator", "KlayLottery", "forceCloseLottery", [lotteryId]]).catch(catchCustomErr("KlayLottery"));
     });
 
     it("Operator draws lottery", async () => {
@@ -434,6 +436,15 @@ describe("Lottery on Testnet", () => {
 
     it("Bob claims his tickets", async () => {
       await claimTickets("bob", 1).catch(catchCustomErr("KlayLottery"));
+    });
+
+    it("Bob cannot claim claimed tickets", async () => {
+      try {
+        await claimTickets("bob", 1);
+        throw Error("Was supposed to throw");
+      } catch (e) {
+        expect(e).instanceOf(Error);
+      }
     });
 
     it("Carol claims her tickets", async () => {

@@ -30,7 +30,7 @@ error LotteryNotClose();
 error FinalNumberNotDrawn();
 
 error TicketIdInvalid();
-error TicketNotYours();
+error TicketNotYours(uint256 ticketId);
 error SendFailed();
 
 /**
@@ -570,7 +570,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
 
     function requireTicketOwner(uint256 ticketId) internal view {
         if (msg.sender != _tickets[ticketId].owner) {
-            revert TicketNotYours();
+            revert TicketNotYours(ticketId);
         }
     }
 
