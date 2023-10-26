@@ -1,2 +1,3 @@
 *.sol
 lottery/config/contracts
+**/coverage

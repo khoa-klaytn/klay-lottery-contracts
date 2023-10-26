@@ -8,7 +8,7 @@ contract TestKlayLottery is KlayLottery {
         address _randomGeneratorAddress,
         address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) KlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, MIN_TICKET_PRICE_IN_USD) {}
+    ) KlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
 
     function reset() external onlyOwner {
         currentLotteryId = 0;
