@@ -2,6 +2,46 @@ import { ethers } from "ethers";
 import { time } from "@openzeppelin/test-helpers";
 import { contracts, wallets } from "./globals";
 
+/**
+ * Adapted from https://stackoverflow.com/a/41407246
+ */
+export enum ConsoleColor {
+  Reset = "\x1b[0m",
+  Bright = "\x1b[1m",
+  Dim = "\x1b[2m",
+  Underscore = "\x1b[4m",
+  Blink = "\x1b[5m",
+  Reverse = "\x1b[7m",
+  Hidden = "\x1b[8m",
+
+  FgBlack = "\x1b[30m",
+  FgRed = "\x1b[31m",
+  FgGreen = "\x1b[32m",
+  FgYellow = "\x1b[33m",
+  FgBlue = "\x1b[34m",
+  FgMagenta = "\x1b[35m",
+  FgCyan = "\x1b[36m",
+  FgWhite = "\x1b[37m",
+  FgGray = "\x1b[90m",
+
+  BgBlack = "\x1b[40m",
+  BgRed = "\x1b[41m",
+  BgGreen = "\x1b[42m",
+  BgYellow = "\x1b[43m",
+  BgBlue = "\x1b[44m",
+  BgMagenta = "\x1b[45m",
+  BgCyan = "\x1b[46m",
+  BgWhite = "\x1b[47m",
+  BgGray = "\x1b[100m",
+}
+
+export function colorInfo(namespace: any, msg: any, namespace_color: ConsoleColor) {
+  console.info(`${namespace_color}${namespace}:${ConsoleColor.Reset}`, msg);
+}
+export function grayLog(msg: string) {
+  console.info(`${ConsoleColor.FgGray}${msg}`);
+}
+
 export async function readContract(
   wallet_name: WalletName,
   contract_name: ContractName,
@@ -13,7 +53,7 @@ export async function readContract(
   const signer = contracts[contract_name].connect(wallets[wallet_name]);
   const fn = signer[fn_name as any];
   const response = await fn(...args);
-  console.info(`(read)${contract_name}.${fn_name}@${wallet_name}: ${response}`);
+  colorInfo(`(read)${contract_name}.${fn_name}@${wallet_name}`, response, ConsoleColor.FgCyan);
   return response;
 }
 
@@ -77,12 +117,12 @@ async function _sendFn(
   const fn = signer[fn_name];
   let response: ethers.TransactionResponse;
   if (overrides) {
-    console.info("Overrides: ", overrides);
+    colorInfo("Overrides", overrides, ConsoleColor.FgYellow);
     response = await fn(...args, overrides);
   } else {
     response = await fn(...args);
   }
-  console.info(`${contract_name}.${fn_name}@${wallet_name}: ${response.hash}`);
+  colorInfo(`${contract_name}.${fn_name}@${wallet_name}`, response.hash, ConsoleColor.FgMagenta);
   return response;
 }
 

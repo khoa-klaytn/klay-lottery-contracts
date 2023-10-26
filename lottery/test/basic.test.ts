@@ -1,7 +1,7 @@
 import "@nomicfoundation/hardhat-ethers";
 import { expect } from "chai";
 import { contracts, startLottery_config, wallets } from "./globals";
-import { EndTime, catchCustomErr, findEvent, readContract, sendFn } from "./helpers";
+import { ConsoleColor, EndTime, catchCustomErr, colorInfo, findEvent, grayLog, readContract, sendFn } from "./helpers";
 
 describe("Basic Flow", () => {
   // ----- //
@@ -114,13 +114,13 @@ describe("Basic Flow", () => {
       size
     );
     const ticketIds = tickets[0].toArray();
-    console.info(`Ticket IDs: ${ticketIds}`);
+    grayLog(`Ticket IDs: ${ticketIds}`);
     const claimTicketsTx = await sendFn([wallet_name, "KlayLottery", "claimTickets", [lottery_id, ticketIds]]).catch(
       catchCustomErr("KlayLottery")
     );
     const claimTicketsReceipt = claimTicketsTx[1];
     const ticketsClaimEvent = findEvent(claimTicketsReceipt, "TicketsClaim");
-    console.info(`Reward: ${ticketsClaimEvent.args[1]}`);
+    colorInfo("Reward", ticketsClaimEvent.args[1], ConsoleColor.FgGreen);
   }
 
   it("Bob claims his tickets", async () => {

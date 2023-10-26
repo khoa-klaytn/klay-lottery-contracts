@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import fs from "fs/promises";
 import obj_contract_name_config, { TypeContractNameAbi } from "../config/contracts";
 import { contracts, provider, startLottery_config, wallets } from "./globals";
-import { readContract, sendFn } from "./helpers";
+import { ConsoleColor, colorInfo, grayLog, readContract, sendFn } from "./helpers";
 import path from "path";
 
 // ----- //
@@ -100,7 +100,7 @@ async function syncArtifact<CName extends ContractName, CConfig extends Contract
   const contract_config = contractConfig({ abi, artifact, address, args, bytecode });
   const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
   await fs.writeFile(contract_config_path, contract_config);
-  console.log(`Synced ${contract_name} artifact`);
+  colorInfo("Synced", `${contract_name} artifact`, ConsoleColor.FgGreen);
 }
 
 function assignContract(contract_name: ContractName, address: HexStr, abi: ethers.Interface) {
@@ -112,7 +112,7 @@ function findContract<T extends ContractName>(contract_name: T) {
 
   const abi_interface = new ethers.Interface(abi);
   assignContract(contract_name, address, abi_interface);
-  console.info(`${contract_name} found @ ${address}`);
+  grayLog(`${contract_name} found: ${address}`);
   return address;
 }
 async function deployContract<T extends ContractName>(contract_name: T, args: any[]) {
@@ -130,6 +130,6 @@ async function deployContract<T extends ContractName>(contract_name: T, args: an
     throw new Error(`${contract_name} address not found`);
   }
   assignContract(contract_name, address, abi_interface);
-  console.info(`${contract_name} deployed @ ${address}`);
+  grayLog(`${contract_name} deployed: ${address}`);
   return address;
 }
