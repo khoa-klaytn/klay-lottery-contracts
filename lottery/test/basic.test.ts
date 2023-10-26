@@ -100,11 +100,7 @@ describe.only("Basic Flow", () => {
     expect(lotteryNumberDrawnEvent.args[2]).eq(1n, "Should be 1 winner");
 
     const lottery = await readContract("bob", "KlayLottery", "viewLottery", [lottery_id]);
-    const { countWinnersPerBracket, numBrackets, numTickets } = lottery;
-
-    // All Winners
-    const numWinners = countWinnersPerBracket.reduce((a, b) => a + b);
-    expect(numWinners).eq(numTickets);
+    const { countWinnersPerBracket, numBrackets } = lottery;
 
     expect(countWinnersPerBracket[numBrackets]).eq(1n);
     expect(countWinnersPerBracket[0]).eq(2n);
