@@ -1,10 +1,16 @@
 {
   "extends": "@pancakeswap/eslint-config-pancake",
   "rules": {
+    "camelcase": 0,
+    "consistent-return": 0,
     "import/no-extraneous-dependencies": 0,
+    "import/prefer-default-export": 0,
     "no-continue": 0,
     "no-restricted-syntax": 0,
     "@typescript-eslint/no-non-null-assertion": 0,
-    "@typescript-eslint/no-var-requires": 0
+    "@typescript-eslint/no-var-requires": 0,
+    "@typescript-eslint/no-use-before-define": ["error", { "functions": false }],
+    "@typescript-eslint/explicit-module-boundary-types": 0,
+    "prefer-destructuring": 0
   }
 }

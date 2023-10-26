@@ -1,9 +1,10 @@
+import "dotenv/config";
 import type { HardhatUserConfig, NetworkUserConfig } from "hardhat/types";
 import "@nomicfoundation/hardhat-ethers";
 import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
 import "solidity-coverage";
-import "dotenv/config";
+import { beforeAll } from "./test/setup";
 
 const testnet: NetworkUserConfig = {
   url: "https://public-en-baobab.klaytn.net/",
@@ -48,6 +49,10 @@ const config: HardhatUserConfig = {
     flat: false,
   },
   mocha: {
+    rootHooks: {
+      beforeAll,
+    },
+    grep: process.env.GREP,
     timeout: 100000,
   },
 };
