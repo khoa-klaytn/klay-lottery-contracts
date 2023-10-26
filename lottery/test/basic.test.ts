@@ -3,16 +3,16 @@ import { expect } from "chai";
 import { contracts, startLottery_config, wallets } from "./globals";
 import { EndTime, catchCustomErr, findEvent, readContract, sendFn } from "./helpers";
 
-describe("Basic Flow", () => {
+describe.only("Basic Flow", () => {
   // ----- //
   // Setup //
   // ----- //
   let endTime: bigint;
   let lottery_id: bigint;
-  const finalNumber = "234561";
+  const finalNumber = 234561n;
   const objAccountTicketIds = {
     bob: [finalNumber],
-    carol: ["234560", "234562"],
+    carol: [234560n, 234562n],
   };
 
   before(async () => {
@@ -96,8 +96,18 @@ describe("Basic Flow", () => {
     ]).catch(catchCustomErr("KlayLottery"));
     const receipt = tx[1];
     const lotteryNumberDrawnEvent = findEvent(receipt, "LotteryNumberDrawn");
-    const nWinners = lotteryNumberDrawnEvent.args[2];
-    expect(nWinners).to.equal(1n, "Only Bob should win");
+    expect(lotteryNumberDrawnEvent.args[1]).eq(finalNumber);
+    expect(lotteryNumberDrawnEvent.args[2]).eq(1n, "Should be 1 winner");
+
+    const lottery = await readContract("bob", "KlayLottery", "viewLottery", [lottery_id]);
+    const { countWinnersPerBracket, numBrackets, numTickets } = lottery;
+
+    // All Winners
+    const numWinners = countWinnersPerBracket.reduce((a, b) => a + b);
+    expect(numWinners).eq(numTickets);
+
+    expect(countWinnersPerBracket[numBrackets]).eq(1n);
+    expect(countWinnersPerBracket[0]).eq(2n);
   });
 
   async function claimTickets(wallet_name: WalletName, size: number) {

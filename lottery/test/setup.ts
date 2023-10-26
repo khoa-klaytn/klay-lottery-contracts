@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import fs from "fs";
+import fs from "fs/promises";
 import obj_contract_name_config, { TypeContractNameAbi } from "../config/contracts";
 import { contracts, provider, startLottery_config, wallets } from "./globals";
 import { readContract, sendFn } from "./helpers";
@@ -36,7 +36,7 @@ export async function beforeAll() {
   await sendFn(["owner", "DataFeedConsumer", "setQuerier", [wallets.querier.address]]);
   const base_usd = Number(await readContract("querier", "DataFeedConsumer", "queryBaseUsd"));
   const minTicketPriceInUsd = BigInt(Math.round(0.005 * base_usd));
-  startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.1 * base_usd));
+  startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.05 * base_usd));
 
   if (!klay_lottery_address)
     klay_lottery_address = await deployContract("KlayLottery", [rng_address, dfc_address, minTicketPriceInUsd]);
@@ -99,7 +99,8 @@ async function syncArtifact<CName extends ContractName, CConfig extends Contract
   >;
   const contract_config = contractConfig({ abi, artifact, address, args, bytecode });
   const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
-  fs.writeFileSync(contract_config_path, contract_config);
+  await fs.writeFile(contract_config_path, contract_config);
+  console.log(`Synced ${contract_name} artifact`);
 }
 
 function assignContract(contract_name: ContractName, address: HexStr, abi: ethers.Interface) {

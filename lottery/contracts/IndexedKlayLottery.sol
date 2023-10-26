@@ -194,9 +194,6 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         );
         demand(msg.value, amountToTransfer);
 
-        // Increment the total amount collected for the lottery round
-        _lotteries[_lotteryId].amountCollected += amountToTransfer;
-
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
 
@@ -211,6 +208,9 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             // Increase lottery ticket number
             currentTicketId++;
         }
+
+        // Increment the total amount collected for the lottery round
+        _lotteries[_lotteryId].amountCollected += amountToTransfer;
 
         emit TicketsPurchase(msg.sender, _lotteryId, _ticketNumbers.length);
     }
@@ -277,72 +277,68 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         _closeLottery(_lotteryId);
     }
 
+    /**
+     * @return bracketAmountToBurn
+     */
+    function setBracket(
+        Lottery memory lottery,
+        uint256 _lotteryId,
+        uint8 i,
+        uint256 bracketNumWinners,
+        uint256 amountToShareToWinners
+    ) internal returns (uint256 bracketAmountToBurn) {
+        _lotteries[_lotteryId].countWinnersPerBracket[i] = bracketNumWinners;
+
+        uint16 rewardPortion = lottery.rewardPortions[i];
+        if (rewardPortion != 0) {
+            uint256 bracketAmountToShare = (amountToShareToWinners * rewardPortion) / MAX_PORTION;
+            if (bracketNumWinners == 0) {
+                bracketAmountToBurn = bracketAmountToShare;
+            } else {
+                _lotteries[_lotteryId].rewardPerUserPerBracket[i] = bracketAmountToShare / bracketNumWinners;
+            }
+        }
+    }
+
     function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber) internal onlyOperator {
         uint256 numWinners;
 
+        Lottery memory lottery = _lotteries[_lotteryId];
+        uint256 amountToBurn;
         {
-            Lottery memory lottery = _lotteries[_lotteryId];
-            uint256 amountToBurn;
-            {
-                // Calculate the amount to share post-burn fee
-                uint256 amountToShareToWinners = (lottery.amountCollected * lottery.winnersPortion) / MAX_PORTION;
+            // Calculate the amount to share post-burn fee
+            uint256 amountToShareToWinners = (lottery.amountCollected * lottery.winnersPortion) / MAX_PORTION;
 
-                // Calculate prizes for each bracket by starting from the highest one
-                for (uint8 i = lottery.numBrackets; i != 0; i--) {
-                    uint256 bracketNumWinners;
-                    {
-                        uint32 transformedFinalNumber = transformNumber(_finalNumber, i);
-                        bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedFinalNumber];
-                    }
-                    uint256 rewardPortion = lottery.rewardPortions[i];
-                    uint256 bracketAmountToShare = (amountToShareToWinners * rewardPortion) / MAX_PORTION;
-
-                    _lotteries[_lotteryId].countWinnersPerBracket[i] = bracketNumWinners;
-
-                    // A. If number of users for this _bracket number is superior to 0
-                    if (bracketNumWinners != 0) {
-                        // B. If rewards at this bracket are > 0, calculate, else,
-                        // report the numberAddresses from previous bracket
-                        if (rewardPortion != 0) {
-                            _lotteries[_lotteryId].rewardPerUserPerBracket[i] =
-                                bracketAmountToShare /
-                                bracketNumWinners;
-                        }
-
-                        numWinners += bracketNumWinners;
-                        // A. No winners to distribute to, reward is added to the amount to burn
-                    } else {
-                        amountToBurn += bracketAmountToShare;
-                    }
-                }
+            // Calculate prizes for each bracket by starting from the highest one
+            for (uint8 i = lottery.numBrackets; i != 0; i--) {
+                uint256 bracketNumWinners;
                 {
-                    uint16 allWinnersPortion = lottery.rewardPortions[0];
-                    if (allWinnersPortion != 0) {
-                        uint256 bracketNumWinners = lottery.firstTicketIdNextLottery - lottery.firstTicketId;
-                        if (bracketNumWinners != 0) {
-                            uint256 bracketAmountToShare = (amountToShareToWinners * allWinnersPortion) / MAX_PORTION;
-                            _lotteries[_lotteryId].countWinnersPerBracket[0] = bracketNumWinners;
-                            _lotteries[_lotteryId].rewardPerUserPerBracket[0] =
-                                bracketAmountToShare /
-                                bracketNumWinners;
-                        }
-                    }
+                    uint32 transformedFinalNumber = transformNumber(_finalNumber, i);
+                    bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedFinalNumber];
                 }
+                if (bracketNumWinners != 0) {
+                    numWinners += bracketNumWinners;
+                }
+                amountToBurn += setBracket(lottery, _lotteryId, i, bracketNumWinners, amountToShareToWinners);
             }
-
-            // Update internal statuses for lottery
-            _lotteries[_lotteryId].finalNumber = _finalNumber;
-            _lotteries[_lotteryId].status = Status.Claimable;
-
-            if (_autoInjection) {
-                pendingInjectionNextLottery = amountToBurn;
-                amountToBurn = 0;
+            {
+                uint256 bracketNumWinners = lottery.firstTicketIdNextLottery - lottery.firstTicketId - numWinners;
+                amountToBurn += setBracket(lottery, _lotteryId, 0, bracketNumWinners, amountToShareToWinners);
             }
-
-            // Burn
-            amountToBurn += (lottery.amountCollected * lottery.burnPortion) / MAX_PORTION;
-            burn(amountToBurn);
         }
+
+        // Update internal statuses for lottery
+        _lotteries[_lotteryId].finalNumber = _finalNumber;
+        _lotteries[_lotteryId].status = Status.Claimable;
+
+        if (_autoInjection) {
+            pendingInjectionNextLottery = amountToBurn;
+            amountToBurn = 0;
+        }
+
+        // Burn
+        amountToBurn += (lottery.amountCollected * lottery.burnPortion) / MAX_PORTION;
+        burn(amountToBurn);
 
         emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numWinners);
     }
