@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { contracts, startLottery_config, wallets } from "./globals";
 import { EndTime, catchCustomErr, findEvent, readContract, sendFn } from "./helpers";
 
-describe.only("Basic Flow", () => {
+describe("Basic Flow", () => {
   // ----- //
   // Setup //
   // ----- //
