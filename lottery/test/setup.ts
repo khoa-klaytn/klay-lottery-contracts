@@ -1,13 +1,24 @@
 import { ethers } from "ethers";
-import obj_contract_name_config from "../config/contracts";
+import fs from "fs";
+import obj_contract_name_config, { TypeContractNameAbi } from "../config/contracts";
 import { contracts, provider, startLottery_config, wallets } from "./globals";
 import { readContract, sendFn } from "./helpers";
+import path from "path";
 
 // ----- //
 // Setup //
 // ----- //
 
 export async function beforeAll() {
+  // Sync artifacts
+  const artifact_promise_arr = Object.entries(obj_contract_name_config).map(
+    async ([contract_name, { abi: _abi, bytecode: _bytecode, ...config }]) => {
+      await syncArtifact(contract_name as ContractName, config);
+    }
+  );
+  await Promise.all(artifact_promise_arr);
+
+  // Chain stuff
   let klay_lottery_address = findContract("KlayLottery");
   let rng_address = findContract("RandomNumberGenerator");
   if (!rng_address)
@@ -44,6 +55,52 @@ export async function beforeAll() {
 // ------- //
 // Helpers //
 // ------- //
+
+function contractConfig<CName extends ContractName>({
+  abi,
+  artifact,
+  address,
+  args,
+  bytecode,
+}: ContractConfig<TypeContractNameAbi[CName]>) {
+  let contract_config = `
+const abi = ${JSON.stringify(abi)} as const satisfies ContractAbi;
+
+export type Abi = typeof abi;
+
+const config: ContractConfig<Abi> = {`;
+  if (typeof address !== "undefined")
+    contract_config += `
+  address: "${address}", // Keep this on top since the others can get long`;
+  if (typeof args !== "undefined")
+    contract_config += `
+  args: ${JSON.stringify(args, (k, v) => (typeof v === "bigint" ? `${v.toString()}n` : v))},`;
+  contract_config += `
+  artifact: "${artifact}",
+  abi,`;
+  if (typeof bytecode !== "undefined")
+    contract_config += `
+  bytecode: "${bytecode}",`;
+  contract_config += `
+};
+
+export default config;
+`;
+  return contract_config;
+}
+
+async function syncArtifact<CName extends ContractName, CConfig extends ContractConfig<TypeContractNameAbi[CName]>>(
+  contract_name: CName,
+  { artifact, address, args }: Omit<CConfig, "abi" | "bytecode">
+) {
+  const { abi, bytecode } = (await import(artifact, { assert: { type: "json" } })).default as Pick<
+    ContractConfig<TypeContractNameAbi[CName]>,
+    "abi" | "bytecode"
+  >;
+  const contract_config = contractConfig({ abi, artifact, address, args, bytecode });
+  const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
+  fs.writeFileSync(contract_config_path, contract_config);
+}
 
 function assignContract(contract_name: ContractName, address: HexStr, abi: ethers.Interface) {
   contracts[contract_name] = new ethers.Contract(address, abi, provider);

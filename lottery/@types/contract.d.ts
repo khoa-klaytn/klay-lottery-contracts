@@ -14,8 +14,9 @@ declare global {
       : never;
   };
   type ContractConfig<T extends ContractAbi> = {
-    abi: T;
     args?: InputsRecord<T[0]["inputs"][number]>;
+    artifact: string;
+    abi: T;
   } & ( // Either address or bytecode must be defined
     | {
         address: HexStr;
