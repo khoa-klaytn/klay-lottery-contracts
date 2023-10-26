@@ -74,7 +74,7 @@ const config: ContractConfig<Abi> = {`;
   address: "${address}", // Keep this on top since the others can get long`;
   if (typeof args !== "undefined")
     contract_config += `
-  args: ${JSON.stringify(args, (k, v) => (typeof v === "bigint" ? `${v.toString()}n` : v))},`;
+  args: ${JSON.stringify(args, (k, v) => (typeof v === "bigint" ? `${v.toString()}n` : v))},`.replace(/"(\d+n)"/, "$1");
   contract_config += `
   artifact: "${artifact}",
   abi,`;
