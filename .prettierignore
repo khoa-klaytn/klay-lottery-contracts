@@ -1,6 +1,2 @@
-# Global
-projects/**/coverage/
-
-# Project
-projects/bsc-library/
-projects/exchange-protocol/
+*.sol
+lottery/config/contracts
