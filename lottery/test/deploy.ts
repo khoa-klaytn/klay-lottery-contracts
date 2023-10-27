@@ -1,15 +1,15 @@
 import { ethers } from "ethers";
 import fs from "fs/promises";
 import obj_contract_name_config, { TypeContractNameAbi } from "../config/contracts";
-import { contracts, provider, startLottery_config, wallets } from "./globals";
-import { ConsoleColor, colorInfo, grayLog, readContract, sendFn } from "./helpers";
+import { contracts, provider, startLottery_config, wallets } from "../globals";
+import { ConsoleColor, colorInfo, grayLog, readContract, sendFn } from "../helpers";
 import path from "path";
 
 // ----- //
 // Setup //
 // ----- //
 
-export async function beforeAll() {
+export default async function deploy() {
   // Sync artifacts
   const artifact_promise_arr = Object.entries(obj_contract_name_config).map(
     async ([contract_name, { abi: _abi, bytecode: _bytecode, ...config }]) => {

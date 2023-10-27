@@ -4,7 +4,7 @@ import "@nomicfoundation/hardhat-ethers";
 import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
 import "solidity-coverage";
-import { beforeAll } from "./test/setup";
+import deploy from "./test/deploy";
 
 const testnet: NetworkUserConfig = {
   url: "https://public-en-baobab.klaytn.net/",
@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     rootHooks: {
-      beforeAll,
+      beforeAll: deploy,
     },
     grep: process.env.GREP,
     timeout: 100000,

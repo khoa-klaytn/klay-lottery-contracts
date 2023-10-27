@@ -1,7 +1,7 @@
 import "@nomicfoundation/hardhat-ethers";
 import { expect } from "chai";
-import { contracts, startLottery_config, wallets } from "./globals";
-import { ConsoleColor, EndTime, catchCustomErr, colorInfo, findEvent, grayLog, readContract, sendFn } from "./helpers";
+import { contracts, startLottery_config, wallets } from "../globals";
+import { ConsoleColor, EndTime, catchCustomErr, colorInfo, findEvent, grayLog, readContract, sendFn } from "../helpers";
 
 describe("Basic Flow", () => {
   // ----- //

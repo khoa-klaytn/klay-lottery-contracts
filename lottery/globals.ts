@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import obj_wallet_name_config from "../config/wallets";
+import obj_wallet_name_config from "./config/wallets";
 
 const providerUrl = "https://public-en-baobab.klaytn.net/";
 require("@openzeppelin/test-helpers/configure")({
