@@ -124,6 +124,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         uint256 endTime,
         uint256 ticketPrice,
         uint256 firstTicketId,
+        uint8 numBrackets,
         uint256 injectedAmount
     );
     event TicketsPurchase(address indexed buyer, uint256 indexed lotteryId, uint256 numberTickets);
@@ -495,6 +496,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
             _endTime,
             ticketPrice,
             currentTicketId,
+            numBrackets,
             pendingInjectionNextLottery
         );
 
