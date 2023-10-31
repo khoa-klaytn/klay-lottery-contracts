@@ -258,7 +258,6 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
         demand(address(this).balance, fee);
         randomGenerator.requestRandomNumberDirect{value: fee}();
 
-        _lotteries[_lotteryId].amountCollected -= fee;
         _lotteries[_lotteryId].status = Status.Close;
 
         emit LotteryClose(_lotteryId, currentTicketId);
