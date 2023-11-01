@@ -1,12 +1,12 @@
 {
-  "name": "klay-lottery-contracts",
+  "name": "sweepstakes-lottery-contracts",
   "version": "1.0.0",
-  "description": "Klaytn Lottery contracts",
+  "description": "SweepStakes Lottery contracts",
   "private": true,
   "workspaces": [
     "projects/**"
   ],
-  "repository": "https://github.com/khoa-klaytn/klay-lottery-contracts",
+  "repository": "https://github.com/khoa-klaytn/sweepstakes-lottery-contracts",
   "author": "Khoa - Klaytn",
   "license": "MIT",
   "scripts": {

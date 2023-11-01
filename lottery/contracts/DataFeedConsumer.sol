@@ -23,14 +23,14 @@ contract DataFeedConsumer is IDataFeedConsumer, OnlyRoles {
     }
 
     // ------------------------- //
-    // onlyKlayLottery functions //
+    // onlySSLottery functions //
     // ------------------------- //
 
-    function convertCryptoUsd(uint256 crypto) external view override onlyKlayLottery returns (uint256 usd) {
+    function convertCryptoUsd(uint256 crypto) external view override onlySSLottery returns (uint256 usd) {
         return _convertCryptoUsd(crypto);
     }
 
-    function convertUsdCrypto(uint256 usd) external view override onlyKlayLottery returns (uint256 crypto) {
+    function convertUsdCrypto(uint256 usd) external view override onlySSLottery returns (uint256 crypto) {
         return _convertUsdCrypto(usd);
     }
 

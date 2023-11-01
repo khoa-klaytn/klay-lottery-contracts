@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./KlayLottery.sol";
+import "./SSLottery.sol";
 
-contract TestKlayLottery is KlayLottery {
+contract TestSSLottery is SSLottery {
     constructor(
         address _randomGeneratorAddress,
         address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) KlayLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
+    ) SSLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
 
     function reset() external onlyOwner {
         currentLotteryId = 0;

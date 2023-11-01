@@ -2,4 +2,4 @@
 
 ## Description
 
-A lottery for KLAY tokens built with Chainlink's VRF.
+A lottery for KLAY tokens built with Orakl's VRF.

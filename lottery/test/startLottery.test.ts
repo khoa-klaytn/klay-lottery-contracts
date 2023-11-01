@@ -13,7 +13,7 @@ describe("startLottery", () => {
     try {
       await sendFn([
         "operator",
-        "KlayLottery",
+        "SSLottery",
         "startLottery",
         [
           endTime,
@@ -34,7 +34,7 @@ describe("startLottery", () => {
     try {
       await sendFn([
         "operator",
-        "KlayLottery",
+        "SSLottery",
         "startLottery",
         [
           endTime,
@@ -55,7 +55,7 @@ describe("startLottery", () => {
     try {
       await sendFn([
         "operator",
-        "KlayLottery",
+        "SSLottery",
         "startLottery",
         [
           endTime,
@@ -76,7 +76,7 @@ describe("startLottery", () => {
     try {
       await sendFn([
         "operator",
-        "KlayLottery",
+        "SSLottery",
         "startLottery",
         [
           endTime,

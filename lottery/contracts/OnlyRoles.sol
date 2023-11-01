@@ -3,32 +3,32 @@ pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-error NotKlayLottery();
+error NotSSLottery();
 error NotQuerier();
-error NotKlayLotteryOrQuerier();
+error NotSSLotteryOrQuerier();
 
 contract OnlyRoles is Ownable {
-    address public klayLottery;
+    address public ssLottery;
     address public querier;
 
-    function setRoles(address _klayLottery, address _querier) external onlyOwner {
-        setKlayLottery(_klayLottery);
+    function setRoles(address _ssLottery, address _querier) external onlyOwner {
+        setSSLottery(_ssLottery);
         setQuerier(_querier);
     }
 
-    function requireKlayLottery() private view {
-        if (msg.sender != klayLottery) {
-            revert NotKlayLottery();
+    function requireSSLottery() private view {
+        if (msg.sender != ssLottery) {
+            revert NotSSLottery();
         }
     }
 
-    modifier onlyKlayLottery() {
-        requireKlayLottery();
+    modifier onlySSLottery() {
+        requireSSLottery();
         _;
     }
 
-    function setKlayLottery(address _klayLottery) public onlyOwner {
-        klayLottery = _klayLottery;
+    function setSSLottery(address _ssLottery) public onlyOwner {
+        ssLottery = _ssLottery;
     }
 
     function requireQuerier() private view {
@@ -46,9 +46,9 @@ contract OnlyRoles is Ownable {
         querier = _querier;
     }
 
-    modifier onlyKlayLotteryOrQuerier() {
-        if ((msg.sender != klayLottery) && (msg.sender != querier)) {
-            revert NotKlayLotteryOrQuerier();
+    modifier onlySSLotteryOrQuerier() {
+        if ((msg.sender != ssLottery) && (msg.sender != querier)) {
+            revert NotSSLotteryOrQuerier();
         }
         _;
     }

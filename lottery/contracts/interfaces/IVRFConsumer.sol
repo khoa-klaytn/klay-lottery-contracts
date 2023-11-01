@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-interface IRandomNumberGenerator {
+interface IVRFConsumer {
     function estimateFee() external view returns (uint256);
 
     function requestRandomNumber(uint64 accId) external;

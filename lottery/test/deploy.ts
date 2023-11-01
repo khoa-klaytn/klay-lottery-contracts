@@ -19,13 +19,13 @@ export default async function deploy() {
   await Promise.all(artifact_promise_arr);
 
   // Chain stuff
-  let klay_lottery_address = findContract("KlayLottery");
-  let rng_address = findContract("RandomNumberGenerator");
+  let klay_lottery_address = findContract("SSLottery");
+  let rng_address = findContract("VRFConsumer");
   if (!rng_address)
-    rng_address = await deployContract("RandomNumberGenerator", [
-      obj_contract_name_config.RandomNumberGenerator.args.coordinator,
-      obj_contract_name_config.RandomNumberGenerator.args._keyHash,
-      obj_contract_name_config.RandomNumberGenerator.args._callbackGasLimit,
+    rng_address = await deployContract("VRFConsumer", [
+      obj_contract_name_config.VRFConsumer.args.coordinator,
+      obj_contract_name_config.VRFConsumer.args._keyHash,
+      obj_contract_name_config.VRFConsumer.args._callbackGasLimit,
     ]);
   let dfc_address = findContract("DataFeedConsumer");
   if (!dfc_address)
@@ -39,17 +39,17 @@ export default async function deploy() {
   startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.05 * base_usd));
 
   if (!klay_lottery_address)
-    klay_lottery_address = await deployContract("KlayLottery", [rng_address, dfc_address, minTicketPriceInUsd]);
+    klay_lottery_address = await deployContract("SSLottery", [rng_address, dfc_address, minTicketPriceInUsd]);
 
-  await sendFn(["owner", "DataFeedConsumer", "setKlayLottery", [klay_lottery_address]]);
-  await sendFn(["owner", "RandomNumberGenerator", "setRoles", [klay_lottery_address, wallets.querier.address]]);
+  await sendFn(["owner", "DataFeedConsumer", "setSSLottery", [klay_lottery_address]]);
+  await sendFn(["owner", "VRFConsumer", "setRoles", [klay_lottery_address, wallets.querier.address]]);
   await sendFn([
     "owner",
-    "KlayLottery",
+    "SSLottery",
     "setOperatorAndInjectorAddresses",
     [wallets.operator.address, wallets.injector.address],
   ]);
-  await sendFn(["owner", "KlayLottery", "reset"]);
+  await sendFn(["owner", "SSLottery", "reset"]);
 }
 
 // ------- //

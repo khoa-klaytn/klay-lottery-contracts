@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IKlayLottery.sol";
+import "./interfaces/ISSLottery.sol";
 import "./interfaces/IDataFeedConsumer.sol";
-import "./interfaces/IRandomNumberGenerator.sol";
+import "./interfaces/IVRFConsumer.sol";
 
 error LotteryNotClaimable();
 error EndTimePast();
@@ -34,9 +34,9 @@ error TicketNotYours(uint256 ticketId);
 error SendFailed();
 
 /**
- * @notice Subset of KlayLottery holding graph-indexed properties
+ * @notice Subset of SSLottery holding graph-indexed properties
  */
-contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
+contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
@@ -53,7 +53,7 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
     uint16 public constant MAX_PORTION = 10000;
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
 
-    IRandomNumberGenerator internal randomGenerator;
+    IVRFConsumer internal randomGenerator;
     IDataFeedConsumer internal dataFeed;
 
     enum Status {
@@ -134,11 +134,11 @@ contract IndexedKlayLottery is IKlayLottery, ReentrancyGuard, Ownable {
 
     /**
      * @notice Constructor
-     * @dev RandomNumberGenerator must be deployed prior to this contract
+     * @dev VRFConsumer must be deployed prior to this contract
      * @param _randomGeneratorAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
     constructor(address _randomGeneratorAddress, address _dataFeedConsumerAddress, uint256 _minTicketPriceInUsd) {
-        randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
+        randomGenerator = IVRFConsumer(_randomGeneratorAddress);
         dataFeed = IDataFeedConsumer(_dataFeedConsumerAddress);
         MIN_TICKET_PRICE_IN_USD = _minTicketPriceInUsd;
     }

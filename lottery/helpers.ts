@@ -164,9 +164,9 @@ export function catchCustomErr(contract_name: ContractName) {
 
 export function findEvent(receipt: ethers.TransactionReceipt, _eventName: string) {
   let event: ethers.LogDescription;
-  const eventName = contracts.KlayLottery.interface.getEventName(_eventName);
+  const eventName = contracts.SSLottery.interface.getEventName(_eventName);
   for (const log of receipt.logs) {
-    const parsedLog = contracts.KlayLottery.interface.parseLog({
+    const parsedLog = contracts.SSLottery.interface.parseLog({
       topics: Array.from(log.topics),
       data: log.data,
     });

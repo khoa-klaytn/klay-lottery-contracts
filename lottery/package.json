@@ -1,6 +1,6 @@
 {
   "name": "lottery",
-  "description": "A new lottery system for KLAY",
+  "description": "A lottery system for SweepStakes",
   "main": "index.js",
   "version": "2.0.0",
   "license": "MIT",

@@ -17,7 +17,7 @@ describe("Basic Flow", () => {
 
   before(async () => {
     endTime = await EndTime(999n);
-    lottery_id = BigInt(await readContract("owner", "KlayLottery", "currentLotteryId"));
+    lottery_id = BigInt(await readContract("owner", "SSLottery", "currentLotteryId"));
   });
 
   // ---- //
@@ -27,7 +27,7 @@ describe("Basic Flow", () => {
   it("Operator starts lottery", async () => {
     const startTx = await sendFn([
       "operator",
-      "KlayLottery",
+      "SSLottery",
       "startLottery",
       [
         endTime,
@@ -46,14 +46,14 @@ describe("Basic Flow", () => {
   });
 
   it("Bob buys 1 ticket", async () => {
-    const value = await contracts.KlayLottery.calculateCurrentTotalPriceForBulkTickets(objAccountTicketIds.bob.length);
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(objAccountTicketIds.bob.length);
     const buyTicketTx = await sendFn([
       "bob",
-      "KlayLottery",
+      "SSLottery",
       "buyTickets",
       [lottery_id, objAccountTicketIds.bob],
       { value },
-    ]).catch(catchCustomErr("KlayLottery"));
+    ]).catch(catchCustomErr("SSLottery"));
     const buyTicketReceipt = buyTicketTx[1];
     const ticketsPurchaseEvent = findEvent(buyTicketReceipt, "TicketsPurchase");
     const nTickets = ticketsPurchaseEvent.args[2];
@@ -61,16 +61,14 @@ describe("Basic Flow", () => {
   });
 
   it("Carol buys 2 tickets", async () => {
-    const value = await contracts.KlayLottery.calculateCurrentTotalPriceForBulkTickets(
-      objAccountTicketIds.carol.length
-    );
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(objAccountTicketIds.carol.length);
     const buyTicketTx = await sendFn([
       "carol",
-      "KlayLottery",
+      "SSLottery",
       "buyTickets",
       [lottery_id, objAccountTicketIds.carol],
       { value },
-    ]).catch(catchCustomErr("KlayLottery"));
+    ]).catch(catchCustomErr("SSLottery"));
     const buyTicketReceipt = buyTicketTx[1];
     const ticketsPurchaseEvent = findEvent(buyTicketReceipt, "TicketsPurchase");
     const nTickets = ticketsPurchaseEvent.args[2];
@@ -78,28 +76,28 @@ describe("Basic Flow", () => {
   });
 
   it("Injector injects funds", async () => {
-    const value = await contracts.KlayLottery.calculateCurrentTotalPriceForBulkTickets(1);
-    await sendFn(["injector", "KlayLottery", "injectFunds", [lottery_id], { value }]);
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(1);
+    await sendFn(["injector", "SSLottery", "injectFunds", [lottery_id], { value }]);
   });
 
   it("Operator closes lottery", async () => {
     // Wait for lottery to end
-    await sendFn(["operator", "KlayLottery", "forceCloseLottery", [lottery_id]]).catch(catchCustomErr("KlayLottery"));
+    await sendFn(["operator", "SSLottery", "forceCloseLottery", [lottery_id]]).catch(catchCustomErr("SSLottery"));
   });
 
   it("Operator draws lottery", async () => {
     const tx = await sendFn([
       "operator",
-      "KlayLottery",
+      "SSLottery",
       "setFinalNumberAndMakeLotteryClaimable",
       [lottery_id, true, finalNumber],
-    ]).catch(catchCustomErr("KlayLottery"));
+    ]).catch(catchCustomErr("SSLottery"));
     const receipt = tx[1];
     const lotteryNumberDrawnEvent = findEvent(receipt, "LotteryNumberDrawn");
     expect(lotteryNumberDrawnEvent.args[1]).eq(finalNumber);
     expect(lotteryNumberDrawnEvent.args[2]).eq(1n, "Should be 1 winner");
 
-    const lottery = await readContract("bob", "KlayLottery", "viewLottery", [lottery_id]);
+    const lottery = await readContract("bob", "SSLottery", "viewLottery", [lottery_id]);
     const { countWinnersPerBracket, numBrackets } = lottery;
 
     expect(countWinnersPerBracket[numBrackets]).eq(1n);
@@ -107,7 +105,7 @@ describe("Basic Flow", () => {
   });
 
   async function claimTickets(wallet_name: WalletName, size: number) {
-    const tickets = await contracts.KlayLottery.viewUserInfoForLotteryId(
+    const tickets = await contracts.SSLottery.viewUserInfoForLotteryId(
       wallets[wallet_name].address,
       lottery_id,
       0,
@@ -115,8 +113,8 @@ describe("Basic Flow", () => {
     );
     const ticketIds = tickets[0].toArray();
     grayLog(`Ticket IDs: ${ticketIds}`);
-    const claimTicketsTx = await sendFn([wallet_name, "KlayLottery", "claimTickets", [lottery_id, ticketIds]]).catch(
-      catchCustomErr("KlayLottery")
+    const claimTicketsTx = await sendFn([wallet_name, "SSLottery", "claimTickets", [lottery_id, ticketIds]]).catch(
+      catchCustomErr("SSLottery")
     );
     const claimTicketsReceipt = claimTicketsTx[1];
     const ticketsClaimEvent = findEvent(claimTicketsReceipt, "TicketsClaim");
@@ -124,7 +122,7 @@ describe("Basic Flow", () => {
   }
 
   it("Bob claims his tickets", async () => {
-    await claimTickets("bob", 1).catch(catchCustomErr("KlayLottery"));
+    await claimTickets("bob", 1).catch(catchCustomErr("SSLottery"));
   });
 
   it("Bob cannot claim claimed tickets", async () => {
@@ -137,6 +135,6 @@ describe("Basic Flow", () => {
   });
 
   it("Carol claims her tickets", async () => {
-    await claimTickets("carol", 2).catch(catchCustomErr("KlayLottery"));
+    await claimTickets("carol", 2).catch(catchCustomErr("SSLottery"));
   });
 });

@@ -4,43 +4,43 @@ import config from "../config";
 const currentNetwork = network.name;
 
 const main = async () => {
-  let RandomNumberGenerator;
+  let VRFConsumer;
   let DataFeedConsumer;
-  let KlayLottery;
+  let SSLottery;
   if (currentNetwork === "testnet") {
-    RandomNumberGenerator = await ethers.getContractFactory("TestRandomNumberGenerator");
+    VRFConsumer = await ethers.getContractFactory("TestVRFConsumer");
     DataFeedConsumer = await ethers.getContractFactory("TestDataFeedConsumer");
-    KlayLottery = await ethers.getContractFactory("TestKlayLottery");
+    SSLottery = await ethers.getContractFactory("TestSSLottery");
   } else {
-    RandomNumberGenerator = await ethers.getContractFactory("RandomNumberGenerator");
+    VRFConsumer = await ethers.getContractFactory("VRFConsumer");
     DataFeedConsumer = await ethers.getContractFactory("DataFeedConsumer");
-    KlayLottery = await ethers.getContractFactory("KlayLottery");
+    SSLottery = await ethers.getContractFactory("SSLottery");
   }
 
-  const randomNumberGenerator = await RandomNumberGenerator.deploy(
+  const VRFConsumer = await VRFConsumer.deploy(
     config.VRFCoordinator[currentNetwork],
     config.KeyHash[currentNetwork],
     config.CallbackGasLimit[currentNetwork]
   );
-  const randomNumberGeneratorReceipt = await randomNumberGenerator.deploymentTransaction().wait();
-  const randomNumberGeneratorAddress = randomNumberGeneratorReceipt.contractAddress;
-  console.info("RandomNumberGenerator deployed to:", randomNumberGeneratorAddress);
+  const VRFConsumerReceipt = await VRFConsumer.deploymentTransaction().wait();
+  const VRFConsumerAddress = VRFConsumerReceipt.contractAddress;
+  console.info("VRFConsumer deployed to:", VRFConsumerAddress);
 
   const dataFeedConsumer = await DataFeedConsumer.deploy(config.DataFeed[currentNetwork]);
   const dataFeedConsumerReceipt = await dataFeedConsumer.deploymentTransaction().wait();
   const dataFeedConsumerAddress = dataFeedConsumerReceipt.contractAddress;
   console.info("DataFeedConsumer deployed to:", dataFeedConsumerAddress);
 
-  const klayLottery = await KlayLottery.deploy(randomNumberGeneratorAddress, dataFeedConsumerAddress);
-  const klayLotteryReceipt = await klayLottery.deploymentTransaction().wait();
-  const klayLotteryAddress = klayLotteryReceipt.contractAddress;
-  console.info("KlayLottery deployed to:", klayLotteryAddress);
+  const SSLottery = await SSLottery.deploy(VRFConsumerAddress, dataFeedConsumerAddress);
+  const SSLotteryReceipt = await SSLottery.deploymentTransaction().wait();
+  const SSLotteryAddress = SSLotteryReceipt.contractAddress;
+  console.info("SSLottery deployed to:", SSLotteryAddress);
 
   // Set lottery address
-  await randomNumberGenerator.setLotteryAddress(klayLotteryAddress);
-  await dataFeedConsumer.setLotteryAddress(klayLotteryAddress);
+  await VRFConsumer.setLotteryAddress(SSLotteryAddress);
+  await dataFeedConsumer.setLotteryAddress(SSLotteryAddress);
   // Set roles
-  await klayLottery.setOperatorAndInjectorAddresses(
+  await SSLottery.setOperatorAndInjectorAddresses(
     config.OperatorAddress[currentNetwork],
     config.InjectorAddress[currentNetwork]
   );

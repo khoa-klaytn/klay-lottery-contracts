@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./RandomNumberGenerator.sol";
+import "./VRFConsumer.sol";
 
-contract TestRandomNumberGenerator is RandomNumberGenerator {
+contract TestVRFConsumer is VRFConsumer {
     constructor(
         address coordinator,
         bytes32 _keyHash,
         uint32 _callbackGasLimit
-    ) RandomNumberGenerator(coordinator, _keyHash, _callbackGasLimit) {}
+    ) VRFConsumer(coordinator, _keyHash, _callbackGasLimit) {}
 
     /**
      * @notice Request random number using Temporary Account
      */
     function requestRandomNumberDirectTest() external payable {
-        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, klayLottery);
+        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
     }
 
     function viewKeyHash() external view returns (bytes32) {

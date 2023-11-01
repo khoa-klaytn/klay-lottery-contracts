@@ -3,12 +3,12 @@ pragma solidity ^0.8.16;
 
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
-import {IRandomNumberGenerator} from "./interfaces/IRandomNumberGenerator.sol";
+import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
 import {ICoordinator} from "./interfaces/ICoordinator.sol";
-import {IKlayLottery} from "./interfaces/IKlayLottery.sol";
+import {ISSLottery} from "./interfaces/ISSLottery.sol";
 import {OnlyRoles} from "./OnlyRoles.sol";
 
-contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyRoles {
+contract VRFConsumer is VRFConsumerBase, IVRFConsumer, OnlyRoles {
     ICoordinator COORDINATOR;
     uint256 public latestLotteryId;
     uint32 public randomResult;
@@ -34,7 +34,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyR
         require(latestRequestId == requestId, "Wrong requestId");
         // Generate random value between 1 and 50.
         randomResult = uint32(randomWords[0] % 1000000);
-        latestLotteryId = IKlayLottery(klayLottery).currentLotteryId();
+        latestLotteryId = ISSLottery(ssLottery).currentLotteryId();
     }
 
     function estimateFee() external view returns (uint256) {
@@ -42,22 +42,22 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, OnlyR
     }
 
     // ------------------------- //
-    // onlyKlayLottery functions //
+    // onlySSLottery functions //
     // ------------------------- //
 
     /**
      * @notice Request random number using Permanent Account
      * @param accId: Permanent Account ID
      */
-    function requestRandomNumber(uint64 accId) external override onlyKlayLottery {
+    function requestRandomNumber(uint64 accId) external override onlySSLottery {
         latestRequestId = COORDINATOR.requestRandomWords(keyHash, accId, callbackGasLimit, 1);
     }
 
     /**
      * @notice Request random number using Temporary Account
      */
-    function requestRandomNumberDirect() external payable override onlyKlayLottery {
-        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, klayLottery);
+    function requestRandomNumberDirect() external payable override onlySSLottery {
+        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
     }
 
     // --------------------- //
