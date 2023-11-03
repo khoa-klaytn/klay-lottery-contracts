@@ -2,13 +2,14 @@
 pragma solidity ^0.8.16;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./Indexed.sol";
-import "./interfaces.sol";
-import "../interfaces/IVRFConsumer.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {RoleName} from "../AccessControl/enums.sol";
+import {IVRFConsumer} from "../interfaces/IVRFConsumer.sol";
+import {IndexedSSLottery} from "./Indexed.sol";
+import {ISSLottery} from "./interfaces.sol";
 
 contract SSLottery is IndexedSSLottery {
     using SafeERC20 for IERC20;

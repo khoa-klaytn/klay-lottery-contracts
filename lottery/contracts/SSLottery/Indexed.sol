@@ -2,16 +2,16 @@
 pragma solidity ^0.8.16;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControlConsumer} from "../AccessControl/Consumer.sol";
 import {DependentAccessControlConsumer} from "../AccessControl/Dependent.sol";
 import {ContractName, RoleName} from "../AccessControl/enums.sol";
-import "./interfaces.sol";
-import "../interfaces/IDataFeedConsumer.sol";
-import "../interfaces/IVRFConsumer.sol";
+import {IVRFConsumer} from "../interfaces/IVRFConsumer.sol";
+import {ISSLottery} from "./interfaces.sol";
+import {IDataFeedConsumer} from "../interfaces/IDataFeedConsumer.sol";
 
 error LotteryNotClaimable();
 error EndTimePast();

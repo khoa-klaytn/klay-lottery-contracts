@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./DataFeedConsumer.sol";
+import {DataFeedConsumer} from "./DataFeedConsumer.sol";
 
 contract TestDataFeedConsumer is DataFeedConsumer {
     constructor(
