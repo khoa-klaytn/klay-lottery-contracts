@@ -15,14 +15,12 @@ contract DataFeedConsumer is IDataFeedConsumer, AccessControlConsumer {
     uint256 internal immutable BASE_CRYPTO = 10 ** DECIMALS_CRYPTO;
     uint256 internal immutable BASE_USD;
 
-    function CONTRACT_NAME() internal pure override returns (ContractName) {
-        return ContractName.DataFeedConsumer;
-    }
-
     constructor(
         address _accessControlAddress,
         address _aggregatorProxyAddress
     ) AccessControlConsumer(_accessControlAddress) {
+        accessControl.setContractAddress(ContractName.DataFeedConsumer);
+
         dataFeed = IAggregator(_aggregatorProxyAddress);
         uint8 decimals_usd = dataFeed.decimals();
         DECIMALS_USD = decimals_usd;
