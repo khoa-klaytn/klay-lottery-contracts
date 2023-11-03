@@ -8,7 +8,7 @@ import {DependentAccessControlConsumer} from "./AccessControl/Dependent.sol";
 import {ContractName, RoleName} from "./AccessControl/enums.sol";
 import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
 import {ICoordinator} from "./interfaces/ICoordinator.sol";
-import {ISSLottery} from "./interfaces/ISSLottery.sol";
+import {ISSLottery} from "./SSLottery/interfaces.sol";
 
 contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlConsumer, AccessControlConsumer {
     ICoordinator internal coordinator;

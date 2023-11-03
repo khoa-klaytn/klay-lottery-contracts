@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IndexedSSLottery.sol";
-import "./interfaces/ISSLottery.sol";
-import "./interfaces/IVRFConsumer.sol";
+import "./Indexed.sol";
+import "./interfaces.sol";
+import "../interfaces/IVRFConsumer.sol";
 
 contract SSLottery is IndexedSSLottery {
     using SafeERC20 for IERC20;
