@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {RoleControlConsumer} from "./AccessControl/Consumer.sol";
+import {RoleName} from "./AccessControl/enums.sol";
 import "./interfaces/ISSLottery.sol";
 import "./interfaces/IDataFeedConsumer.sol";
 import "./interfaces/IVRFConsumer.sol";
@@ -36,11 +38,9 @@ error SendFailed();
 /**
  * @notice Subset of SSLottery holding graph-indexed properties
  */
-contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
+contract IndexedSSLottery is ISSLottery, ReentrancyGuard, RoleControlConsumer {
     using SafeERC20 for IERC20;
     address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
-    address payable public operatorAddress;
 
     uint256 public currentLotteryId;
     uint256 public currentTicketId;
@@ -113,11 +113,6 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
         _;
     }
 
-    modifier onlyOperator() {
-        require(msg.sender == operatorAddress, "Not operator");
-        _;
-    }
-
     event LotteryOpen(
         uint256 indexed lotteryId,
         uint256 startTime,
@@ -137,7 +132,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
      * @dev VRFConsumer must be deployed prior to this contract
      * @param _vrfConsumerAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
-    constructor(address _vrfConsumerAddress, address _dataFeedConsumerAddress, uint256 _minTicketPriceInUsd) {
+    constructor(
+        address _accessControlAddress,
+        address _vrfConsumerAddress,
+        address _dataFeedConsumerAddress,
+        uint256 _minTicketPriceInUsd
+    ) RoleControlConsumer(_accessControlAddress) {
         vrfConsumer = IVRFConsumer(_vrfConsumerAddress);
         dataFeed = IDataFeedConsumer(_dataFeedConsumerAddress);
         MIN_TICKET_PRICE_IN_USD = _minTicketPriceInUsd;
@@ -269,7 +269,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
      * @param _lotteryId: lottery id
      * @dev Callable by operator
      */
-    function closeLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
+    function closeLottery(uint256 _lotteryId) external onlyRole(RoleName.Operator) nonReentrant {
         requireOpen(_lotteryId);
         if (block.timestamp < _lotteries[_lotteryId].endTime) {
             revert LotteryNotOver();
@@ -300,7 +300,11 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
         }
     }
 
-    function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber) internal onlyOperator {
+    function makeLotteryClaimable(
+        uint256 _lotteryId,
+        bool _autoInjection,
+        uint32 _finalNumber
+    ) internal onlyRole(RoleName.Operator) {
         uint256 numWinners;
 
         Lottery memory lottery = _lotteries[_lotteryId];
@@ -352,7 +356,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
     function drawFinalNumberAndMakeLotteryClaimable(
         uint256 _lotteryId,
         bool _autoInjection
-    ) external onlyOperator nonReentrant {
+    ) external onlyRole(RoleName.Operator) nonReentrant {
         requireClose(_lotteryId);
         if (_lotteryId != vrfConsumer.latestLotteryId()) {
             revert FinalNumberNotDrawn();
@@ -435,7 +439,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, Ownable {
         uint16 _winnersPortion,
         uint16 _burnPortion,
         uint16[] calldata _rewardPortions
-    ) external onlyOperator {
+    ) external onlyRole(RoleName.Operator) {
         if (currentLotteryId != 0) {
             requireClaimable(currentLotteryId);
         }

@@ -42,6 +42,13 @@ export function grayLog(msg: string) {
   console.info(`${ConsoleColor.FgGray}${msg}`);
 }
 
+export function Enum<T extends ReadonlyArray<string>>(...arr: T): { [K in T[number]]: bigint } {
+  return arr.reduce((acc, key, idx) => {
+    acc[key] = BigInt(idx);
+    return acc;
+  }, Object.create(null));
+}
+
 export async function readContract(
   wallet_name: WalletName,
   contract_name: ContractName,

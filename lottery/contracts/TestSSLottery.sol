@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./SSLottery.sol";
+import {SSLottery} from "./SSLottery.sol";
+import {RoleName} from "./AccessControl/enums.sol";
 
 contract TestSSLottery is SSLottery {
     constructor(
+        address _accessControlAddress,
         address _vrfConsumerAddress,
         address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) SSLottery(_vrfConsumerAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
+    ) SSLottery(_accessControlAddress, _vrfConsumerAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
 
-    function reset() external onlyOwner {
+    function reset() external onlyOwnerMember {
         currentLotteryId = 0;
         currentTicketId = 0;
     }
@@ -19,7 +21,7 @@ contract TestSSLottery is SSLottery {
      * Closes lottery regardless of endTime
      * @param _lotteryId Lottery ID
      */
-    function forceCloseLottery(uint256 _lotteryId) external onlyOperator nonReentrant {
+    function forceCloseLottery(uint256 _lotteryId) external onlyRole(RoleName.Operator) nonReentrant {
         requireOpen(_lotteryId);
         _closeLottery(_lotteryId);
     }
@@ -28,7 +30,7 @@ contract TestSSLottery is SSLottery {
         uint256 _lotteryId,
         bool _autoInjection,
         uint32 _finalNumber
-    ) external onlyOperator nonReentrant {
+    ) external onlyRole(RoleName.Operator) nonReentrant {
         requireClose(_lotteryId);
         requireValidTicketNumber(_finalNumber);
         makeLotteryClaimable(_lotteryId, _autoInjection, _finalNumber);

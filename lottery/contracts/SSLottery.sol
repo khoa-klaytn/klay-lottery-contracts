@@ -13,31 +13,24 @@ import "./interfaces/IVRFConsumer.sol";
 contract SSLottery is IndexedSSLottery {
     using SafeERC20 for IERC20;
 
-    address payable public injectorAddress;
-
-    modifier onlyOwnerOrInjector() {
-        require((msg.sender == owner()) || (msg.sender == injectorAddress), "Not owner or injector");
-        _;
-    }
-
     event LotteryInjection(uint256 indexed lotteryId, uint256 injectedAmount);
 
-    event NewOperatorAndInjectorAddresses(address operator, address injector);
     event NewRandomGenerator(address indexed vrfConsumer);
     event AdminTokenRecovery(address token, uint256 amount);
 
     constructor(
+        address _accessControlAddress,
         address _vrfConsumerAddress,
         address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) IndexedSSLottery(_vrfConsumerAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
+    ) IndexedSSLottery(_accessControlAddress, _vrfConsumerAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
 
     /**
      * @notice Inject funds
      * @param _lotteryId: lottery id
      * @dev Callable by owner or injector address
      */
-    function injectFunds(uint256 _lotteryId) external payable onlyOwnerOrInjector {
+    function injectFunds(uint256 _lotteryId) external payable onlyRole(RoleName.Injector) {
         requireOpen(_lotteryId);
 
         uint256 amount = msg.value;
@@ -53,7 +46,7 @@ contract SSLottery is IndexedSSLottery {
      * Callable only by the contract owner
      * @param _vrfConsumerAddress: address of the random generator
      */
-    function changeRandomGenerator(address _vrfConsumerAddress) external onlyOwner {
+    function changeRandomGenerator(address _vrfConsumerAddress) external onlyOwnerMember {
         if (currentLotteryId != 0) {
             requireClaimable(currentLotteryId);
         }
@@ -75,7 +68,7 @@ contract SSLottery is IndexedSSLottery {
      * @param _tokenAmount: the number of token amount to withdraw
      * @dev Only callable by owner.
      */
-    function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
+    function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwnerMember {
         IERC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
         emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
     }
@@ -84,22 +77,9 @@ contract SSLottery is IndexedSSLottery {
      * @notice Set max number of tickets
      * @dev Only callable by owner
      */
-    function setMaxNumberTicketsPerBuy(uint256 _maxNumberTicketsPerBuy) external onlyOwner {
+    function setMaxNumberTicketsPerBuy(uint256 _maxNumberTicketsPerBuy) external onlyOwnerMember {
         require(_maxNumberTicketsPerBuy != 0, "Must be > 0");
         maxNumberTicketsPerBuyOrClaim = _maxNumberTicketsPerBuy;
-    }
-
-    /**
-     * @notice Set operator and injector addresses
-     * @dev Only callable by owner
-     * @param _operatorAddress: address of the operator
-     * @param _injectorAddress: address of the injector
-     */
-    function setOperatorAndInjectorAddresses(address _operatorAddress, address _injectorAddress) external onlyOwner {
-        operatorAddress = payable(_operatorAddress);
-        injectorAddress = payable(_injectorAddress);
-
-        emit NewOperatorAndInjectorAddresses(_operatorAddress, _injectorAddress);
     }
 
     /**
