@@ -20,17 +20,17 @@ export default async function deploy() {
 
   // Chain stuff
   let klay_lottery_address = findContract("SSLottery");
-  let rng_address = findContract("VRFConsumer");
-  if (!rng_address)
-    rng_address = await deployContract("VRFConsumer", [
-      obj_contract_name_config.VRFConsumer.args.coordinator,
+  let vrf_consumer_address = findContract("VRFConsumer");
+  if (!vrf_consumer_address)
+    vrf_consumer_address = await deployContract("VRFConsumer", [
+      obj_contract_name_config.VRFConsumer.args._coordinatorAddress,
       obj_contract_name_config.VRFConsumer.args._keyHash,
       obj_contract_name_config.VRFConsumer.args._callbackGasLimit,
     ]);
   let dfc_address = findContract("DataFeedConsumer");
   if (!dfc_address)
     dfc_address = await deployContract("DataFeedConsumer", [
-      obj_contract_name_config.DataFeedConsumer.args.aggregatorProxy,
+      obj_contract_name_config.DataFeedConsumer.args._aggregatorProxyAddress,
     ]);
 
   await sendFn(["owner", "DataFeedConsumer", "setQuerier", [wallets.querier.address]]);
@@ -39,7 +39,7 @@ export default async function deploy() {
   startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.05 * base_usd));
 
   if (!klay_lottery_address)
-    klay_lottery_address = await deployContract("SSLottery", [rng_address, dfc_address, minTicketPriceInUsd]);
+    klay_lottery_address = await deployContract("SSLottery", [vrf_consumer_address, dfc_address, minTicketPriceInUsd]);
 
   await sendFn(["owner", "DataFeedConsumer", "setSSLottery", [klay_lottery_address]]);
   await sendFn(["owner", "VRFConsumer", "setRoles", [klay_lottery_address, wallets.querier.address]]);

@@ -9,15 +9,19 @@ import {ISSLottery} from "./interfaces/ISSLottery.sol";
 import {OnlyRoles} from "./OnlyRoles.sol";
 
 contract VRFConsumer is VRFConsumerBase, IVRFConsumer, OnlyRoles {
-    ICoordinator COORDINATOR;
+    ICoordinator coordinator;
     uint256 public latestLotteryId;
     uint32 public randomResult;
     bytes32 internal keyHash;
     uint32 internal callbackGasLimit;
     uint256 internal latestRequestId;
 
-    constructor(address coordinator, bytes32 _keyHash, uint32 _callbackGasLimit) VRFConsumerBase(coordinator) {
-        COORDINATOR = ICoordinator(coordinator);
+    constructor(
+        address _coordinatorAddress,
+        bytes32 _keyHash,
+        uint32 _callbackGasLimit
+    ) VRFConsumerBase(_coordinatorAddress) {
+        coordinator = ICoordinator(_coordinatorAddress);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
     }
@@ -38,7 +42,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, OnlyRoles {
     }
 
     function estimateFee() external view returns (uint256) {
-        return COORDINATOR.estimateFee(1, 1, callbackGasLimit);
+        return coordinator.estimateFee(1, 1, callbackGasLimit);
     }
 
     // ------------------------- //
@@ -50,14 +54,14 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, OnlyRoles {
      * @param accId: Permanent Account ID
      */
     function requestRandomNumber(uint64 accId) external override onlySSLottery {
-        latestRequestId = COORDINATOR.requestRandomWords(keyHash, accId, callbackGasLimit, 1);
+        latestRequestId = coordinator.requestRandomWords(keyHash, accId, callbackGasLimit, 1);
     }
 
     /**
      * @notice Request random number using Temporary Account
      */
     function requestRandomNumberDirect() external payable override onlySSLottery {
-        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
+        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
     }
 
     // --------------------- //
@@ -81,11 +85,11 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, OnlyRoles {
     // -------------------- //
 
     function cancelRequest(uint256 requestId) external onlyOwner {
-        COORDINATOR.cancelRequest(requestId);
+        coordinator.cancelRequest(requestId);
     }
 
     function withdrawTemporary(uint64 accId) external onlyOwner {
-        address prepaymentAddress = COORDINATOR.getPrepaymentAddress();
+        address prepaymentAddress = coordinator.getPrepaymentAddress();
         IPrepayment(prepaymentAddress).withdrawTemporary(accId, payable(msg.sender));
     }
 

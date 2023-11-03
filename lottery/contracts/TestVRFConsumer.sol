@@ -5,16 +5,16 @@ import "./VRFConsumer.sol";
 
 contract TestVRFConsumer is VRFConsumer {
     constructor(
-        address coordinator,
+        address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit
-    ) VRFConsumer(coordinator, _keyHash, _callbackGasLimit) {}
+    ) VRFConsumer(_coordinatorAddress, _keyHash, _callbackGasLimit) {}
 
     /**
      * @notice Request random number using Temporary Account
      */
     function requestRandomNumberDirectTest() external payable {
-        latestRequestId = COORDINATOR.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
+        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
     }
 
     function viewKeyHash() external view returns (bytes32) {

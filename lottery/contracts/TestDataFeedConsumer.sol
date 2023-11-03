@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "./DataFeedConsumer.sol";
 
 contract TestDataFeedConsumer is DataFeedConsumer {
-    constructor(address aggregatorProxy) DataFeedConsumer(aggregatorProxy) {}
+    constructor(address _aggregatorProxyAddress) DataFeedConsumer(_aggregatorProxyAddress) {}
 
     function getLatestDataTest() external view returns (uint256) {
         return _getLatestData();

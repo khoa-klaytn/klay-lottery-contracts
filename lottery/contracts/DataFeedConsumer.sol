@@ -14,8 +14,8 @@ contract DataFeedConsumer is IDataFeedConsumer, OnlyRoles {
     uint256 internal immutable BASE_CRYPTO = 10 ** DECIMALS_CRYPTO;
     uint256 internal immutable BASE_USD;
 
-    constructor(address aggregatorProxy) {
-        dataFeed = IAggregator(aggregatorProxy);
+    constructor(address _aggregatorProxyAddress) {
+        dataFeed = IAggregator(_aggregatorProxyAddress);
         uint8 decimals_usd = dataFeed.decimals();
         DECIMALS_USD = decimals_usd;
         uint256 base_usd = 10 ** DECIMALS_USD;

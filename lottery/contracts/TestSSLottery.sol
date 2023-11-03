@@ -5,10 +5,10 @@ import "./SSLottery.sol";
 
 contract TestSSLottery is SSLottery {
     constructor(
-        address _randomGeneratorAddress,
+        address _vrfConsumerAddress,
         address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) SSLottery(_randomGeneratorAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
+    ) SSLottery(_vrfConsumerAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
 
     function reset() external onlyOwner {
         currentLotteryId = 0;
