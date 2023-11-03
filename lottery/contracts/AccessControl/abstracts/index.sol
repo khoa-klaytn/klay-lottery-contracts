@@ -7,14 +7,22 @@ import {AbstractMultiOwnable} from "./MultiOwnable.sol";
 interface IContractControl {
     function getContractAddress(ContractName contractName) external view returns (address);
 
-    /**
-     * @notice Uses msg.sender as contractAddress
-     */
-    function setContractAddress(ContractName contractName) external;
+    function setContractAddress(ContractName contractName, address contractAddress) external;
 
     function isControlContract(ContractName contractName, address contractAddress) external view returns (bool);
 
     function requireControlContract(ContractName contractName, address contractAddress) external view;
+
+    /**
+     * @notice Makes msg.sender dependent on contractName
+     */
+    function addDependent(ContractName contractName) external;
+
+    function removeDependent(ContractName contractName, address contractAddress) external;
+
+    function syncContract(ContractName contractName) external;
+
+    function pushContractAddress(ContractName contractName, address contractAddress) external;
 }
 
 abstract contract AbstractContractControl is IContractControl, AbstractMultiOwnable {}

@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControlConsumer} from "./AccessControl/Consumer.sol";
+import {DependentAccessControlConsumer} from "./AccessControl/Dependent.sol";
 import {ContractName, RoleName} from "./AccessControl/enums.sol";
 import "./interfaces/ISSLottery.sol";
 import "./interfaces/IDataFeedConsumer.sol";
@@ -38,7 +39,7 @@ error SendFailed();
 /**
  * @notice Subset of SSLottery holding graph-indexed properties
  */
-contract IndexedSSLottery is ISSLottery, ReentrancyGuard, AccessControlConsumer {
+contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControlConsumer, AccessControlConsumer {
     using SafeERC20 for IERC20;
 
     address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
@@ -131,12 +132,23 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, AccessControlConsumer 
     constructor(
         address _accessControlAddress,
         uint256 _minTicketPriceInUsd
-    ) AccessControlConsumer(_accessControlAddress) {
-        accessControl.setContractAddress(ContractName.SSLottery);
+    ) DependentAccessControlConsumer(_accessControlAddress) AccessControlConsumer(_accessControlAddress) {
+        accessControl.setContractAddress(ContractName.SSLottery, address(this));
+        accessControl.addDependent(ContractName.VRFConsumer);
+        accessControl.addDependent(ContractName.DataFeedConsumer);
 
-        vrfConsumer = IVRFConsumer(accessControl.getContractAddress(ContractName.VRFConsumer));
-        dataFeed = IDataFeedConsumer(accessControl.getContractAddress(ContractName.DataFeedConsumer));
         MIN_TICKET_PRICE_IN_USD = _minTicketPriceInUsd;
+    }
+
+    function onContractAddressChange(
+        ContractName contractName,
+        address contractAddress
+    ) external override onlyAccessControl {
+        if (contractName == ContractName.VRFConsumer) {
+            vrfConsumer = IVRFConsumer(contractAddress);
+        } else if (contractName == ContractName.DataFeedConsumer) {
+            dataFeed = IDataFeedConsumer(contractAddress);
+        }
     }
 
     function demand(uint256 sending, uint256 demanding) internal pure {

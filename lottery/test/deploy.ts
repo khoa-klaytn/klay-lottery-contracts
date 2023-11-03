@@ -52,6 +52,10 @@ export default async function deploy() {
   if (!klay_lottery_address)
     klay_lottery_address = await deployContract("SSLottery", [access_control_address, minTicketPriceInUsd]);
 
+  for (const contract_name in ContractName) {
+    await sendFn(["owner", "AccessControl", "syncContract", [ContractName[contract_name]]]);
+  }
+
   await sendFn(["owner", "SSLottery", "reset"]);
 }
 

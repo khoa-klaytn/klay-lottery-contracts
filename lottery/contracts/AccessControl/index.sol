@@ -5,6 +5,7 @@ import {AddressSetLib} from "../libs/AddressSetLib.sol";
 import {MultiOwnable} from "./MultiOwnable.sol";
 import {ContractName, RoleName} from "./enums.sol";
 import {AbstractAccessControl, AbstractContractControl, AbstractRoleControl} from "./abstracts/index.sol";
+import {IDependent} from "./Dependent.sol";
 
 // --------------- //
 // ContractControl //
@@ -16,6 +17,7 @@ contract ContractControl is AbstractContractControl, MultiOwnable {
     using AddressSetLib for AddressSetLib.Set;
 
     mapping(ContractName => address) private mapContractNameAddress;
+    mapping(ContractName => AddressSetLib.Set) private mapContractNameDependentSet;
 
     function getContractAddress(ContractName contractName) external view override returns (address) {
         return mapContractNameAddress[contractName];
@@ -24,8 +26,11 @@ contract ContractControl is AbstractContractControl, MultiOwnable {
     /**
      * @dev To be called by the contract itself, have owner as tx.origin
      */
-    function setContractAddress(ContractName contractName) external override onlyOwnerMemberOrigin {
-        mapContractNameAddress[contractName] = msg.sender;
+    function setContractAddress(
+        ContractName contractName,
+        address contractAddress
+    ) public override onlyOwnerMemberOrigin {
+        mapContractNameAddress[contractName] = contractAddress;
     }
 
     function isControlContract(ContractName contractName, address sender) public view override returns (bool) {
@@ -36,6 +41,35 @@ contract ContractControl is AbstractContractControl, MultiOwnable {
         if (!isControlContract(contractName, sender)) {
             revert NotControlContract(contractName, msg.sender);
         }
+    }
+
+    function addDependent(ContractName contractName) external override onlyOwnerMemberOrigin {
+        mapContractNameDependentSet[contractName].insert(msg.sender);
+    }
+
+    function removeDependent(ContractName contractName, address contractAddress) external override onlyOwnerMember {
+        mapContractNameDependentSet[contractName].remove(contractAddress);
+    }
+
+    function _syncContract(ContractName contractName) internal {
+        address[] memory dependentKeyList = mapContractNameDependentSet[contractName].keyList;
+        if (dependentKeyList.length == 0) return;
+
+        address contractAddress = mapContractNameAddress[contractName];
+        uint256 dependentKeyListLength = dependentKeyList.length;
+        for (uint256 i = 0; i < dependentKeyListLength; i++) {
+            address dependent = dependentKeyList[i];
+            IDependent(dependent).onContractAddressChange(contractName, contractAddress);
+        }
+    }
+
+    function syncContract(ContractName contractName) external override onlyOwnerMember {
+        _syncContract(contractName);
+    }
+
+    function pushContractAddress(ContractName contractName, address contractAddress) external override onlyOwnerMember {
+        setContractAddress(contractName, contractAddress);
+        _syncContract(contractName);
     }
 }
 

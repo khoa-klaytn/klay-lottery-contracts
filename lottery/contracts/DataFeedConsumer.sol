@@ -19,7 +19,7 @@ contract DataFeedConsumer is IDataFeedConsumer, AccessControlConsumer {
         address _accessControlAddress,
         address _aggregatorProxyAddress
     ) AccessControlConsumer(_accessControlAddress) {
-        accessControl.setContractAddress(ContractName.DataFeedConsumer);
+        accessControl.setContractAddress(ContractName.DataFeedConsumer, address(this));
 
         dataFeed = IAggregator(_aggregatorProxyAddress);
         uint8 decimals_usd = dataFeed.decimals();

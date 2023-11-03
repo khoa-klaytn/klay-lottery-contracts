@@ -4,13 +4,15 @@ pragma solidity ^0.8.16;
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
 import {AccessControlConsumer} from "./AccessControl/Consumer.sol";
+import {DependentAccessControlConsumer} from "./AccessControl/Dependent.sol";
 import {ContractName, RoleName} from "./AccessControl/enums.sol";
 import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
 import {ICoordinator} from "./interfaces/ICoordinator.sol";
 import {ISSLottery} from "./interfaces/ISSLottery.sol";
 
-contract VRFConsumer is VRFConsumerBase, IVRFConsumer, AccessControlConsumer {
+contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlConsumer, AccessControlConsumer {
     ICoordinator internal coordinator;
+    ISSLottery internal ssLottery;
 
     uint256 public latestLotteryId;
     uint32 public randomResult;
@@ -23,12 +25,26 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, AccessControlConsumer {
         address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit
-    ) VRFConsumerBase(_coordinatorAddress) AccessControlConsumer(_accessControlAddress) {
-        accessControl.setContractAddress(ContractName.VRFConsumer);
+    )
+        VRFConsumerBase(_coordinatorAddress)
+        DependentAccessControlConsumer(_accessControlAddress)
+        AccessControlConsumer(_accessControlAddress)
+    {
+        accessControl.setContractAddress(ContractName.VRFConsumer, address(this));
+        accessControl.addDependent(ContractName.SSLottery);
 
         coordinator = ICoordinator(_coordinatorAddress);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
+    }
+
+    function onContractAddressChange(
+        ContractName contractName,
+        address contractAddress
+    ) external override onlyAccessControl {
+        if (contractName == ContractName.SSLottery) {
+            ssLottery = ISSLottery(contractAddress);
+        }
     }
 
     // ------------------------- //
@@ -43,7 +59,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, AccessControlConsumer {
         require(latestRequestId == requestId, "Wrong requestId");
         // Generate random value between 1 and 50.
         randomResult = uint32(randomWords[0] % 1000000);
-        latestLotteryId = ISSLottery(accessControl.getContractAddress(ContractName.SSLottery)).currentLotteryId();
+        latestLotteryId = ssLottery.currentLotteryId();
     }
 
     function estimateFee() external view returns (uint256) {
