@@ -7,10 +7,8 @@ import {RoleName} from "./AccessControl/enums.sol";
 contract TestSSLottery is SSLottery {
     constructor(
         address _accessControlAddress,
-        address _vrfConsumerAddress,
-        address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) SSLottery(_accessControlAddress, _vrfConsumerAddress, _dataFeedConsumerAddress, _minTicketPriceInUsd) {}
+    ) SSLottery(_accessControlAddress, _minTicketPriceInUsd) {}
 
     function reset() external onlyOwnerMember {
         currentLotteryId = 0;

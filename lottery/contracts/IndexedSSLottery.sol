@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {RoleControlConsumer} from "./AccessControl/Consumer.sol";
-import {RoleName} from "./AccessControl/enums.sol";
+import {AccessControlConsumer} from "./AccessControl/Consumer.sol";
+import {ContractName, RoleName} from "./AccessControl/enums.sol";
 import "./interfaces/ISSLottery.sol";
 import "./interfaces/IDataFeedConsumer.sol";
 import "./interfaces/IVRFConsumer.sol";
@@ -38,8 +38,9 @@ error SendFailed();
 /**
  * @notice Subset of SSLottery holding graph-indexed properties
  */
-contract IndexedSSLottery is ISSLottery, ReentrancyGuard, RoleControlConsumer {
+contract IndexedSSLottery is ISSLottery, ReentrancyGuard, AccessControlConsumer {
     using SafeERC20 for IERC20;
+
     address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public currentLotteryId;
@@ -127,19 +128,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, RoleControlConsumer {
     event LotteryNumberDrawn(uint256 indexed lotteryId, uint32 finalNumber, uint256 countWinningTickets);
     event TicketsClaim(address indexed claimer, uint256 amount, uint256 indexed lotteryId, uint256 numberTickets);
 
-    /**
-     * @notice Constructor
-     * @dev VRFConsumer must be deployed prior to this contract
-     * @param _vrfConsumerAddress: address of the RandomGenerator contract used to work with ChainLink VRF
-     */
     constructor(
         address _accessControlAddress,
-        address _vrfConsumerAddress,
-        address _dataFeedConsumerAddress,
         uint256 _minTicketPriceInUsd
-    ) RoleControlConsumer(_accessControlAddress) {
-        vrfConsumer = IVRFConsumer(_vrfConsumerAddress);
-        dataFeed = IDataFeedConsumer(_dataFeedConsumerAddress);
+    ) AccessControlConsumer(_accessControlAddress) {
+        vrfConsumer = IVRFConsumer(accessControl.getContractAddress(ContractName.VRFConsumer));
+        dataFeed = IDataFeedConsumer(accessControl.getContractAddress(ContractName.DataFeedConsumer));
         MIN_TICKET_PRICE_IN_USD = _minTicketPriceInUsd;
     }
 
@@ -256,8 +250,9 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, RoleControlConsumer {
 
         // Request a random number from the generator
         uint256 fee = vrfConsumer.estimateFee();
-        demand(address(this).balance, fee);
-        vrfConsumer.requestRandomNumberDirect{value: fee}();
+        address thisAddress = address(this);
+        demand(thisAddress.balance, fee);
+        vrfConsumer.requestRandomNumberDirect{value: fee}(thisAddress);
 
         _lotteries[_lotteryId].status = Status.Close;
 

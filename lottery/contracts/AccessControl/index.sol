@@ -3,8 +3,38 @@ pragma solidity ^0.8.16;
 
 import {AddressSetLib} from "../libs/AddressSetLib.sol";
 import {MultiOwnable} from "./MultiOwnable.sol";
-import {RoleName} from "./enums.sol";
-import {AbstractAccessControl, AbstractRoleControl} from "./abstracts/index.sol";
+import {ContractName, RoleName} from "./enums.sol";
+import {AbstractAccessControl, AbstractContractControl, AbstractRoleControl} from "./abstracts/index.sol";
+
+// --------------- //
+// ContractControl //
+// --------------- //
+
+error NotControlContract(ContractName contractName, address sender);
+
+contract ContractControl is AbstractContractControl, MultiOwnable {
+    using AddressSetLib for AddressSetLib.Set;
+
+    mapping(ContractName => address) private mapContractNameAddress;
+
+    function getContractAddress(ContractName contractName) external view override returns (address) {
+        return mapContractNameAddress[contractName];
+    }
+
+    function setContractAddress(ContractName contractName, address contractAddress) external override onlyOwnerMember {
+        mapContractNameAddress[contractName] = contractAddress;
+    }
+
+    function isControlContract(ContractName contractName, address sender) public view override returns (bool) {
+        return mapContractNameAddress[contractName] == sender;
+    }
+
+    function requireControlContract(ContractName contractName, address sender) external view override {
+        if (!isControlContract(contractName, sender)) {
+            revert NotControlContract(contractName, msg.sender);
+        }
+    }
+}
 
 // ----------- //
 // RoleControl //
@@ -21,19 +51,19 @@ contract RoleControl is AbstractRoleControl, MultiOwnable {
         mapRoleMemberSet[RoleName.Injector].insert(msg.sender);
     }
 
-    function addMember(RoleName roleName, address member) external onlyOwnerMember {
+    function addMember(RoleName roleName, address member) external override onlyOwnerMember {
         mapRoleMemberSet[roleName].insert(member);
     }
 
-    function removeMember(RoleName roleName, address member) external onlyOwnerMember {
+    function removeMember(RoleName roleName, address member) external override onlyOwnerMember {
         mapRoleMemberSet[roleName].remove(member);
     }
 
-    function hasRole(RoleName roleName, address sender) public view returns (bool) {
+    function hasRole(RoleName roleName, address sender) public view override returns (bool) {
         return mapRoleMemberSet[roleName].exists(sender);
     }
 
-    function requireRole(RoleName roleName, address sender) external view {
+    function requireRole(RoleName roleName, address sender) external view override {
         if (!hasRole(roleName, sender)) {
             revert NotRole(roleName, msg.sender);
         }
@@ -44,6 +74,6 @@ contract RoleControl is AbstractRoleControl, MultiOwnable {
 // AccessControl //
 // ------------- //
 
-contract AccessControl is AbstractAccessControl, RoleControl {
+contract AccessControl is AbstractAccessControl, ContractControl, RoleControl {
 
 }

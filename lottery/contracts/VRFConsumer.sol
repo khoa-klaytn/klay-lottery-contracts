@@ -3,15 +3,15 @@ pragma solidity ^0.8.16;
 
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
-import {RoleControlConsumer} from "./AccessControl/Consumer.sol";
-import {RoleName} from "./AccessControl/enums.sol";
-import {OnlyRoles} from "./OnlyRoles.sol";
+import {AccessControlConsumer} from "./AccessControl/Consumer.sol";
+import {ContractName, RoleName} from "./AccessControl/enums.sol";
 import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
 import {ICoordinator} from "./interfaces/ICoordinator.sol";
 import {ISSLottery} from "./interfaces/ISSLottery.sol";
 
-contract VRFConsumer is VRFConsumerBase, IVRFConsumer, RoleControlConsumer, OnlyRoles {
-    ICoordinator coordinator;
+contract VRFConsumer is VRFConsumerBase, IVRFConsumer, AccessControlConsumer {
+    ICoordinator internal coordinator;
+
     uint256 public latestLotteryId;
     uint32 public randomResult;
     bytes32 internal keyHash;
@@ -23,7 +23,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, RoleControlConsumer, Only
         address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit
-    ) VRFConsumerBase(_coordinatorAddress) RoleControlConsumer(_accessControlAddress) {
+    ) VRFConsumerBase(_coordinatorAddress) AccessControlConsumer(_accessControlAddress) {
         coordinator = ICoordinator(_coordinatorAddress);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
@@ -41,7 +41,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, RoleControlConsumer, Only
         require(latestRequestId == requestId, "Wrong requestId");
         // Generate random value between 1 and 50.
         randomResult = uint32(randomWords[0] % 1000000);
-        latestLotteryId = ISSLottery(ssLottery).currentLotteryId();
+        latestLotteryId = ISSLottery(accessControl.getContractAddress(ContractName.SSLottery)).currentLotteryId();
     }
 
     function estimateFee() external view returns (uint256) {
@@ -56,15 +56,17 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, RoleControlConsumer, Only
      * @notice Request random number using Permanent Account
      * @param accId: Permanent Account ID
      */
-    function requestRandomNumber(uint64 accId) external override onlySSLottery {
+    function requestRandomNumber(uint64 accId) external override onlyControlContract(ContractName.SSLottery) {
         latestRequestId = coordinator.requestRandomWords(keyHash, accId, callbackGasLimit, 1);
     }
 
     /**
      * @notice Request random number using Temporary Account
      */
-    function requestRandomNumberDirect() external payable override onlySSLottery {
-        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
+    function requestRandomNumberDirect(
+        address sender
+    ) external payable override onlyControlContract(ContractName.SSLottery) {
+        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, sender);
     }
 
     // ----------------- //

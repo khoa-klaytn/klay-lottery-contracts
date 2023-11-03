@@ -6,7 +6,7 @@ interface IVRFConsumer {
 
     function requestRandomNumber(uint64 accId) external;
 
-    function requestRandomNumberDirect() external payable;
+    function requestRandomNumberDirect(address sender) external payable;
 
     /**
      * View latest lotteryId numbers

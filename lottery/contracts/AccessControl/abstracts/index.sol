@@ -1,8 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {RoleName} from "../enums.sol";
-import {AbstractMultiOwnable} from "./IMultiOwnable.sol";
+import {ContractName, RoleName} from "../enums.sol";
+import {AbstractMultiOwnable} from "./MultiOwnable.sol";
+
+interface IContractControl {
+    function getContractAddress(ContractName contractName) external view returns (address);
+
+    function setContractAddress(ContractName contractName, address contractAddress) external;
+
+    function isControlContract(ContractName contractName, address contractAddress) external view returns (bool);
+
+    function requireControlContract(ContractName contractName, address contractAddress) external view;
+}
+
+abstract contract AbstractContractControl is IContractControl, AbstractMultiOwnable {}
 
 interface IRoleControl {
     function addMember(RoleName roleName, address member) external;
@@ -16,4 +28,4 @@ interface IRoleControl {
 
 abstract contract AbstractRoleControl is IRoleControl, AbstractMultiOwnable {}
 
-abstract contract AbstractAccessControl is AbstractRoleControl {}
+abstract contract AbstractAccessControl is AbstractContractControl, AbstractRoleControl {}

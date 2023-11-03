@@ -2,14 +2,13 @@
 pragma solidity ^0.8.16;
 
 import {IAggregator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IAggregator.sol";
-import {RoleControlConsumer} from "./AccessControl/Consumer.sol";
-import {RoleName} from "./AccessControl/enums.sol";
-import {OnlyRoles} from "./OnlyRoles.sol";
+import {AccessControlConsumer} from "./AccessControl/Consumer.sol";
+import {ContractName, RoleName} from "./AccessControl/enums.sol";
 import {IDataFeedConsumer} from "./interfaces/IDataFeedConsumer.sol";
 
 error AnswerNonPositive();
 
-contract DataFeedConsumer is IDataFeedConsumer, RoleControlConsumer, OnlyRoles {
+contract DataFeedConsumer is IDataFeedConsumer, AccessControlConsumer {
     IAggregator internal dataFeed;
     uint8 internal constant DECIMALS_CRYPTO = 18;
     uint8 internal immutable DECIMALS_USD;
@@ -19,7 +18,7 @@ contract DataFeedConsumer is IDataFeedConsumer, RoleControlConsumer, OnlyRoles {
     constructor(
         address _accessControlAddress,
         address _aggregatorProxyAddress
-    ) RoleControlConsumer(_accessControlAddress) {
+    ) AccessControlConsumer(_accessControlAddress) {
         dataFeed = IAggregator(_aggregatorProxyAddress);
         uint8 decimals_usd = dataFeed.decimals();
         DECIMALS_USD = decimals_usd;
@@ -31,11 +30,15 @@ contract DataFeedConsumer is IDataFeedConsumer, RoleControlConsumer, OnlyRoles {
     // SSLottery functions //
     // ------------------- //
 
-    function convertCryptoUsd(uint256 crypto) external view override onlySSLottery returns (uint256 usd) {
+    function convertCryptoUsd(
+        uint256 crypto
+    ) external view override onlyControlContract(ContractName.SSLottery) returns (uint256 usd) {
         return _convertCryptoUsd(crypto);
     }
 
-    function convertUsdCrypto(uint256 usd) external view override onlySSLottery returns (uint256 crypto) {
+    function convertUsdCrypto(
+        uint256 usd
+    ) external view override onlyControlContract(ContractName.SSLottery) returns (uint256 crypto) {
         return _convertUsdCrypto(usd);
     }
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {AddressSetLib} from "../libs/AddressSetLib.sol";
-import {AbstractMultiOwnable} from "./abstracts/IMultiOwnable.sol";
+import {AbstractMultiOwnable} from "./abstracts/MultiOwnable.sol";
 
 error NotOwnerMember(address sender);
 

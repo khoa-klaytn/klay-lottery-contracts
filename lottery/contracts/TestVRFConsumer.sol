@@ -15,7 +15,7 @@ contract TestVRFConsumer is VRFConsumer {
      * @notice Request random number using Temporary Account
      */
     function requestRandomNumberDirectTest() external payable {
-        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, ssLottery);
+        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, msg.sender);
     }
 
     function viewKeyHash() external view returns (bytes32) {
