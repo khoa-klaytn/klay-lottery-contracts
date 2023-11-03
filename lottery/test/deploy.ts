@@ -34,14 +34,12 @@ export default async function deploy() {
       obj_contract_name_config.VRFConsumer.args._keyHash,
       obj_contract_name_config.VRFConsumer.args._callbackGasLimit,
     ]);
-  await sendFn(["owner", "AccessControl", "setContractAddress", [ContractName.VRFConsumer, vrf_consumer_address]]);
   let dfc_address = findContract("DataFeedConsumer");
   if (!dfc_address)
     dfc_address = await deployContract("DataFeedConsumer", [
       access_control_address,
       obj_contract_name_config.DataFeedConsumer.args._aggregatorProxyAddress,
     ]);
-  await sendFn(["owner", "AccessControl", "setContractAddress", [ContractName.DataFeedConsumer, dfc_address]]);
 
   await sendFn(["owner", "AccessControl", "addMember", [RoleName.Operator, wallets.operator.address]]);
   await sendFn(["owner", "AccessControl", "addMember", [RoleName.Injector, wallets.injector.address]]);
@@ -53,7 +51,6 @@ export default async function deploy() {
 
   if (!klay_lottery_address)
     klay_lottery_address = await deployContract("SSLottery", [access_control_address, minTicketPriceInUsd]);
-  await sendFn(["owner", "AccessControl", "setContractAddress", [ContractName.SSLottery, klay_lottery_address]]);
 
   await sendFn(["owner", "SSLottery", "reset"]);
 }

@@ -15,6 +15,10 @@ contract DataFeedConsumer is IDataFeedConsumer, AccessControlConsumer {
     uint256 internal immutable BASE_CRYPTO = 10 ** DECIMALS_CRYPTO;
     uint256 internal immutable BASE_USD;
 
+    function CONTRACT_NAME() internal pure override returns (ContractName) {
+        return ContractName.DataFeedConsumer;
+    }
+
     constructor(
         address _accessControlAddress,
         address _aggregatorProxyAddress

@@ -18,6 +18,10 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, AccessControlConsumer {
     uint32 internal callbackGasLimit;
     uint256 internal latestRequestId;
 
+    function CONTRACT_NAME() internal pure override returns (ContractName) {
+        return ContractName.VRFConsumer;
+    }
+
     constructor(
         address _accessControlAddress,
         address _coordinatorAddress,

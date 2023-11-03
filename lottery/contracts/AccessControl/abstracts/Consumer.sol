@@ -51,11 +51,14 @@ abstract contract ConstructorlessRoleControlConsumer is ConstructorlessAbstractA
 }
 
 abstract contract AbstractAccessControlConsumer is ConstructorlessAbstractAccessControlConsumer {
+    function CONTRACT_NAME() internal pure virtual returns (ContractName);
+
     constructor(address _accessControlAddress) {
         AbstractAccessControl _accessControl = AbstractAccessControl(_accessControlAddress);
         address _owner = owner();
         address _accessControlOwner = _accessControl.owner();
         if (_owner != _accessControlOwner) revert OwnerMismatch();
+        _accessControl.setContractAddress(CONTRACT_NAME());
         accessControl = _accessControl;
     }
 }

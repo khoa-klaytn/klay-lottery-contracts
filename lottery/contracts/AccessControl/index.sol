@@ -21,8 +21,11 @@ contract ContractControl is AbstractContractControl, MultiOwnable {
         return mapContractNameAddress[contractName];
     }
 
-    function setContractAddress(ContractName contractName, address contractAddress) external override onlyOwnerMember {
-        mapContractNameAddress[contractName] = contractAddress;
+    /**
+     * @dev To be called by the contract itself, have owner as tx.origin
+     */
+    function setContractAddress(ContractName contractName) external override onlyOwnerMemberOrigin {
+        mapContractNameAddress[contractName] = msg.sender;
     }
 
     function isControlContract(ContractName contractName, address sender) public view override returns (bool) {

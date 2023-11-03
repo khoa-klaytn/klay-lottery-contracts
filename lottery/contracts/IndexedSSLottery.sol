@@ -128,6 +128,10 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, AccessControlConsumer 
     event LotteryNumberDrawn(uint256 indexed lotteryId, uint32 finalNumber, uint256 countWinningTickets);
     event TicketsClaim(address indexed claimer, uint256 amount, uint256 indexed lotteryId, uint256 numberTickets);
 
+    function CONTRACT_NAME() internal pure override returns (ContractName) {
+        return ContractName.SSLottery;
+    }
+
     constructor(
         address _accessControlAddress,
         uint256 _minTicketPriceInUsd

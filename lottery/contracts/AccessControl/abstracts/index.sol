@@ -7,7 +7,10 @@ import {AbstractMultiOwnable} from "./MultiOwnable.sol";
 interface IContractControl {
     function getContractAddress(ContractName contractName) external view returns (address);
 
-    function setContractAddress(ContractName contractName, address contractAddress) external;
+    /**
+     * @notice Uses msg.sender as contractAddress
+     */
+    function setContractAddress(ContractName contractName) external;
 
     function isControlContract(ContractName contractName, address contractAddress) external view returns (bool);
 
