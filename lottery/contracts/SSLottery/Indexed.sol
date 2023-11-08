@@ -208,7 +208,15 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
 
             requireValidTicketNumber(thisTicketNumber);
 
+            uint32 prevTicketNumber = thisTicketNumber;
             _numberTicketsPerLotteryId[_lotteryId][thisTicketNumber]++;
+            for (uint8 bracket = _lotteries[_lotteryId].numBrackets - 1; bracket != 0; bracket--) {
+                uint32 transformedTicketNumber = transformNumber(thisTicketNumber, bracket);
+                if (transformedTicketNumber != prevTicketNumber) {
+                    _numberTicketsPerLotteryId[_lotteryId][transformedTicketNumber]++;
+                    prevTicketNumber = transformedTicketNumber;
+                }
+            }
 
             _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(currentTicketId);
 
@@ -327,7 +335,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
                 uint256 bracketNumWinners;
                 {
                     uint32 transformedFinalNumber = transformNumber(_finalNumber, i);
-                    bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedFinalNumber];
+                    bracketNumWinners = _numberTicketsPerLotteryId[_lotteryId][transformedFinalNumber] - numWinners;
                 }
                 if (bracketNumWinners != 0) {
                     numWinners += bracketNumWinners;
