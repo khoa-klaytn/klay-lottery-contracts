@@ -19,7 +19,7 @@ error TicketPriceLow(uint256 min);
 error DiscountDivisorLow(uint256 min);
 error PortionsInvalidLen();
 error PortionDescending(uint8 i);
-error PortionsExceedMax(string name);
+error PortionsExceedMax(bytes32 name);
 
 error LotteryNotOpen();
 
@@ -558,7 +558,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
         }
     }
 
-    function requireValidPortions(string memory name, uint16 total) internal pure {
+    function requireValidPortions(bytes32 name, uint16 total) internal pure {
         if (total > MAX_PORTION) {
             revert PortionsExceedMax(name);
         }
