@@ -198,6 +198,10 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         send(ZERO_ADDRESS, amount);
     }
 
+    function treasure(uint256 amount) internal {
+        send(treasuryAddress, amount);
+    }
+
     receive() external payable {}
 
     fallback() external payable {}
@@ -387,7 +391,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
         // Burn
         amountToBurn += (lottery.amountCollected * lottery.burnPortion) / MAX_PORTION;
-        burn(amountToBurn);
+        treasure(amountToBurn);
 
         emit LotteryNumberDrawn(currentLotteryId, _finalNumber, numWinners);
     }
