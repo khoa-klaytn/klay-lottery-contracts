@@ -56,6 +56,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     uint16 public constant MAX_PORTION = 10000;
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
 
+    address internal treasuryAddress;
     address internal vrfConsumerAddress;
     IVRFConsumer internal vrfConsumer;
     address internal dataFeedAddress;
@@ -151,24 +152,29 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     }
 
     function addContractDependencies() internal override {
+        addContractDependency(ContractName.Treasury);
         addContractDependency(ContractName.DataFeedConsumer);
         addContractDependency(ContractName.VRFConsumer);
     }
 
-    function _onContractAddressChange(ContractName contractName, address contractAddress) internal override {
-        if (contractName == ContractName.VRFConsumer && contractAddress != vrfConsumerAddress) {
+    function _onContractAddressChange(ContractName _contractName, address contractAddress) internal override {
+        if (_contractName == ContractName.Treasury && contractAddress != ZERO_ADDRESS) {
+            treasuryAddress = contractAddress;
+        } else if (_contractName == ContractName.VRFConsumer && contractAddress != vrfConsumerAddress) {
             vrfConsumer = IVRFConsumer(contractAddress);
             dataFeedAddress = contractAddress;
-        } else if (contractName == ContractName.DataFeedConsumer && contractAddress != dataFeedAddress) {
+        } else if (_contractName == ContractName.DataFeedConsumer && contractAddress != dataFeedAddress) {
             dataFeed = IDataFeedConsumer(contractAddress);
             vrfConsumerAddress = contractAddress;
         }
     }
 
-    function isControlContract(ContractName contractName, address sender) internal view override returns (bool) {
-        if (contractName == ContractName.VRFConsumer) {
+    function isControlContract(ContractName _contractName, address sender) internal view override returns (bool) {
+        if (_contractName == ContractName.Treasury) {
+            return sender == treasuryAddress;
+        } else if (_contractName == ContractName.VRFConsumer) {
             return sender == vrfConsumerAddress;
-        } else if (contractName == ContractName.DataFeedConsumer) {
+        } else if (_contractName == ContractName.DataFeedConsumer) {
             return sender == dataFeedAddress;
         }
         return false;
