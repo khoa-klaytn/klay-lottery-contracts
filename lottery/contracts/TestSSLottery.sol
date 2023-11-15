@@ -2,15 +2,16 @@
 pragma solidity ^0.8.16;
 
 import {SSLottery} from "./SSLottery/index.sol";
-import {RoleName} from "./AccessControl/enums.sol";
+import {RoleName} from "./RoleControl/enum.sol";
 
 contract TestSSLottery is SSLottery {
     constructor(
-        address _accessControlAddress,
+        address _roleControlAddress,
+        address _contractControlAddress,
         uint256 _minTicketPriceInUsd
-    ) SSLottery(_accessControlAddress, _minTicketPriceInUsd) {}
+    ) SSLottery(_roleControlAddress, _contractControlAddress, _minTicketPriceInUsd) {}
 
-    function reset() external onlyOwnerMember {
+    function reset() external onlyRole(RoleName.Owner) {
         currentLotteryId = 0;
         currentTicketId = 0;
     }

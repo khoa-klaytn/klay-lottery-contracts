@@ -6,9 +6,3 @@ enum ContractName {
     VRFConsumer,
     SSLottery
 }
-
-enum RoleName {
-    Operator,
-    Injector,
-    Querier
-}

@@ -5,11 +5,12 @@ import {VRFConsumer} from "./VRFConsumer.sol";
 
 contract TestVRFConsumer is VRFConsumer {
     constructor(
-        address _accessControlAddress,
+        address _roleControlAddress,
+        address _contractControlAddress,
         address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit
-    ) VRFConsumer(_accessControlAddress, _coordinatorAddress, _keyHash, _callbackGasLimit) {}
+    ) VRFConsumer(_roleControlAddress, _contractControlAddress, _coordinatorAddress, _keyHash, _callbackGasLimit) {}
 
     /**
      * @notice Request random number using Temporary Account

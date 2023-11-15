@@ -1,7 +1,7 @@
 import type { ethers } from "ethers";
 
 declare global {
-  type ContractName = "AccessControl" | "VRFConsumer" | "DataFeedConsumer" | "SSLottery";
+  type ContractName = "RoleControl" | "ContractControl" | "VRFConsumer" | "DataFeedConsumer" | "SSLottery";
   type ContractAbi = ReadonlyArray<ethers.JsonFragment>;
   /**
    * A type to store inputs for non-immediate use

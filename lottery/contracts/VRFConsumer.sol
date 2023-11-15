@@ -3,15 +3,17 @@ pragma solidity ^0.8.16;
 
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
-import {AccessControlConsumer} from "./AccessControl/Consumer.sol";
-import {DependentAccessControlConsumer} from "./AccessControl/Dependent.sol";
-import {ContractName, RoleName} from "./AccessControl/enums.sol";
+import {ContractControlConsumer} from "./ContractControl/Consumer.sol";
+import {ContractName} from "./ContractControl/enum.sol";
+import {RoleControlConsumer} from "./RoleControl/Consumer.sol";
+import {RoleName} from "./RoleControl/enum.sol";
 import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
 import {ICoordinator} from "./interfaces/ICoordinator.sol";
 import {ISSLottery} from "./SSLottery/interfaces.sol";
 
-contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlConsumer, AccessControlConsumer {
+contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, RoleControlConsumer {
     ICoordinator internal coordinator;
+    address internal ssLotteryAddress;
     ISSLottery internal ssLottery;
 
     uint256 public latestLotteryId;
@@ -21,29 +23,41 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlCon
     uint256 internal latestRequestId;
 
     constructor(
-        address _accessControlAddress,
+        address _roleControlAddress,
+        address _contractControlAddress,
         address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit
     )
         VRFConsumerBase(_coordinatorAddress)
-        DependentAccessControlConsumer(_accessControlAddress)
-        AccessControlConsumer(_accessControlAddress)
+        ContractControlConsumer(_contractControlAddress, ContractName.VRFConsumer)
+        RoleControlConsumer(_roleControlAddress)
     {
-        accessControl.setContractAddress(ContractName.VRFConsumer, address(this));
-        accessControl.addDependent(ContractName.SSLottery);
-
         coordinator = ICoordinator(_coordinatorAddress);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
     }
 
-    function onContractAddressChange(
-        ContractName contractName,
-        address contractAddress
-    ) external override onlyAccessControl {
+    function addRoleDependencies() internal override {
+        addRoleDependency(RoleName.Querier);
+        addRoleDependency(RoleName.Owner);
+    }
+
+    function addContractDependencies() internal override {
+        addContractDependency(ContractName.SSLottery);
+    }
+
+    function isControlContract(ContractName contractName, address sender) internal view override returns (bool) {
         if (contractName == ContractName.SSLottery) {
+            return ssLotteryAddress == sender;
+        }
+        return false;
+    }
+
+    function _onContractAddressChange(ContractName contractName, address contractAddress) internal override {
+        if (contractName == ContractName.SSLottery && contractAddress != ssLotteryAddress) {
             ssLottery = ISSLottery(contractAddress);
+            ssLotteryAddress = contractAddress;
         }
     }
 
@@ -107,11 +121,11 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlCon
     // OwnerMember functions //
     // --------------------- //
 
-    function cancelRequest(uint256 requestId) external onlyOwnerMember {
+    function cancelRequest(uint256 requestId) external onlyRole(RoleName.Owner) {
         coordinator.cancelRequest(requestId);
     }
 
-    function withdrawTemporary(uint64 accId) external onlyOwnerMember {
+    function withdrawTemporary(uint64 accId) external onlyRole(RoleName.Owner) {
         address prepaymentAddress = coordinator.getPrepaymentAddress();
         IPrepayment(prepaymentAddress).withdrawTemporary(accId, payable(msg.sender));
     }
@@ -120,7 +134,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlCon
      * @notice Change the keyHash
      * @param _keyHash: new keyHash
      */
-    function setKeyHash(bytes32 _keyHash) external onlyOwnerMember {
+    function setKeyHash(bytes32 _keyHash) external onlyRole(RoleName.Owner) {
         keyHash = _keyHash;
     }
 
@@ -128,7 +142,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, DependentAccessControlCon
      * @notice Set the callback gas limit
      * @param _callbackGasLimit: new callback gas limit
      */
-    function setCallbackGasLimit(uint32 _callbackGasLimit) external onlyOwnerMember {
+    function setCallbackGasLimit(uint32 _callbackGasLimit) external onlyRole(RoleName.Owner) {
         callbackGasLimit = _callbackGasLimit;
     }
 }

@@ -6,12 +6,13 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AccessControlConsumer} from "../AccessControl/Consumer.sol";
-import {DependentAccessControlConsumer} from "../AccessControl/Dependent.sol";
-import {ContractName, RoleName} from "../AccessControl/enums.sol";
+import {ContractControlConsumer} from "../ContractControl/Consumer.sol";
+import {ContractName} from "../ContractControl/enum.sol";
+import {RoleControlConsumer} from "../RoleControl/Consumer.sol";
+import {RoleName} from "../RoleControl/enum.sol";
 import {IVRFConsumer} from "../interfaces/IVRFConsumer.sol";
-import {ISSLottery} from "./interfaces.sol";
 import {IDataFeedConsumer} from "../interfaces/IDataFeedConsumer.sol";
+import {ISSLottery} from "./interfaces.sol";
 
 error LotteryNotClaimable();
 error EndTimePast();
@@ -39,7 +40,7 @@ error SendFailed();
 /**
  * @notice Subset of SSLottery holding graph-indexed properties
  */
-contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControlConsumer, AccessControlConsumer {
+contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsumer, RoleControlConsumer {
     using SafeERC20 for IERC20;
 
     address internal constant ZERO_ADDRESS = 0x000000000000000000000000000000000000dEaD;
@@ -55,7 +56,9 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
     uint16 public constant MAX_PORTION = 10000;
     uint256 public constant MIN_DISCOUNT_DIVISOR = 300;
 
+    address internal vrfConsumerAddress;
     IVRFConsumer internal vrfConsumer;
+    address internal dataFeedAddress;
     IDataFeedConsumer internal dataFeed;
 
     enum Status {
@@ -130,25 +133,45 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
     event TicketsClaim(address indexed claimer, uint256 amount, uint256 indexed lotteryId, uint256 numberTickets);
 
     constructor(
-        address _accessControlAddress,
+        address _roleControlAddress,
+        address _contractControlAddress,
         uint256 _minTicketPriceInUsd
-    ) DependentAccessControlConsumer(_accessControlAddress) AccessControlConsumer(_accessControlAddress) {
-        accessControl.setContractAddress(ContractName.SSLottery, address(this));
-        accessControl.addDependent(ContractName.VRFConsumer);
-        accessControl.addDependent(ContractName.DataFeedConsumer);
-
+    )
+        ContractControlConsumer(_contractControlAddress, ContractName.SSLottery)
+        RoleControlConsumer(_roleControlAddress)
+    {
         MIN_TICKET_PRICE_IN_USD = _minTicketPriceInUsd;
     }
 
-    function onContractAddressChange(
-        ContractName contractName,
-        address contractAddress
-    ) external override onlyAccessControl {
-        if (contractName == ContractName.VRFConsumer) {
+    function addRoleDependencies() internal override {
+        addRoleDependency(RoleName.Owner);
+        addRoleDependency(RoleName.Operator);
+        addRoleDependency(RoleName.Injector);
+        addRoleDependency(RoleName.Querier);
+    }
+
+    function addContractDependencies() internal override {
+        addContractDependency(ContractName.DataFeedConsumer);
+        addContractDependency(ContractName.VRFConsumer);
+    }
+
+    function _onContractAddressChange(ContractName contractName, address contractAddress) internal override {
+        if (contractName == ContractName.VRFConsumer && contractAddress != vrfConsumerAddress) {
             vrfConsumer = IVRFConsumer(contractAddress);
-        } else if (contractName == ContractName.DataFeedConsumer) {
+            dataFeedAddress = contractAddress;
+        } else if (contractName == ContractName.DataFeedConsumer && contractAddress != dataFeedAddress) {
             dataFeed = IDataFeedConsumer(contractAddress);
+            vrfConsumerAddress = contractAddress;
         }
+    }
+
+    function isControlContract(ContractName contractName, address sender) internal view override returns (bool) {
+        if (contractName == ContractName.VRFConsumer) {
+            return sender == vrfConsumerAddress;
+        } else if (contractName == ContractName.DataFeedConsumer) {
+            return sender == dataFeedAddress;
+        }
+        return false;
     }
 
     function demand(uint256 sending, uint256 demanding) internal pure {
@@ -158,7 +181,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
     }
 
     function send(address recipient, uint256 amount) internal {
-        demand(address(this).balance, amount);
+        demand(thisAddress.balance, amount);
         bool sent = payable(recipient).send(amount);
         if (!sent) {
             revert SendFailed();
@@ -272,7 +295,6 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, DependentAccessControl
 
         // Request a random number from the generator
         uint256 fee = vrfConsumer.estimateFee();
-        address thisAddress = address(this);
         demand(thisAddress.balance, fee);
         vrfConsumer.requestRandomNumberDirect{value: fee}(thisAddress);
 

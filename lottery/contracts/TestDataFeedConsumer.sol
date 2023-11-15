@@ -5,9 +5,10 @@ import {DataFeedConsumer} from "./DataFeedConsumer.sol";
 
 contract TestDataFeedConsumer is DataFeedConsumer {
     constructor(
-        address _accessControlAddress,
+        address _roleControlAddress,
+        address _contractControlAddress,
         address _aggregatorProxyAddress
-    ) DataFeedConsumer(_accessControlAddress, _aggregatorProxyAddress) {}
+    ) DataFeedConsumer(_roleControlAddress, _contractControlAddress, _aggregatorProxyAddress) {}
 
     function getLatestDataTest() external view returns (uint256) {
         return _getLatestData();
