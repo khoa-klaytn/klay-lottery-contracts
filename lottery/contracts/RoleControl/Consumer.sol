@@ -56,7 +56,7 @@ abstract contract RoleControlConsumer is IRoleDependent, RoleCopy, Ownable, This
         mapRoleMemberSet[roleName].remove(member);
     }
 
-    function hasRole(RoleName roleName, address sender) internal view returns (bool) {
+    function hasRole(RoleName roleName, address sender) public view returns (bool) {
         return mapRoleMemberSet[roleName].exists(sender);
     }
 
