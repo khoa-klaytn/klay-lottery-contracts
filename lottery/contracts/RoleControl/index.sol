@@ -58,7 +58,7 @@ contract RoleControl is IRoleControl, RoleCopy, Ownable {
     }
 
     function requireOwnerMember(address sender) internal view {
-        if (!mapRoleMemberSet[RoleName.Owner].exists(sender)) revert NotOwnerMember(msg.sender);
+        if (!mapRoleMemberSet[RoleName.Owner].exists(sender)) revert NotOwnerMember(sender);
     }
 
     modifier onlyOwnerMember() {

@@ -62,7 +62,7 @@ abstract contract RoleControlConsumer is IRoleDependent, RoleCopy, Ownable, This
 
     function requireRole(RoleName roleName, address sender) internal view {
         if (!hasRole(roleName, sender)) {
-            revert NotRole(roleName, msg.sender);
+            revert NotRole(roleName, sender);
         }
     }
 
