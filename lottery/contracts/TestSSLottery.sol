@@ -31,7 +31,7 @@ contract TestSSLottery is SSLottery {
         uint32 _finalNumber
     ) external onlyRole(RoleName.Operator) nonReentrant {
         requireClose(_lotteryId);
-        requireValidTicketNumber(_finalNumber);
+        requireValidTicketNumber(_finalNumber, _lotteries[_lotteryId].numBrackets);
         makeLotteryClaimable(_lotteryId, _autoInjection, _finalNumber);
     }
 

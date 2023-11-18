@@ -206,8 +206,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
     fallback() external payable {}
 
+    function maxNumber(uint8 numBrackets) internal pure returns (uint32) {
+        return uint32(10) ** numBrackets;
+    }
+
     function transformNumber(uint32 number, uint8 base) internal pure returns (uint32) {
-        return number % (uint32(10) ** base);
+        return number % maxNumber(base);
     }
 
     /**
@@ -237,14 +241,15 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         );
         demand(msg.value, amountToTransfer);
 
+        uint8 numBrackets = lottery.numBrackets;
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
 
-            requireValidTicketNumber(thisTicketNumber);
+            requireValidTicketNumber(thisTicketNumber, numBrackets);
 
             uint32 prevTicketNumber = thisTicketNumber;
             _numberTicketsPerLotteryId[_lotteryId][thisTicketNumber]++;
-            for (uint8 bracket = lottery.numBrackets - 1; bracket != 0; bracket--) {
+            for (uint8 bracket = numBrackets - 1; bracket != 0; bracket--) {
                 uint32 transformedTicketNumber = transformNumber(thisTicketNumber, bracket);
                 if (transformedTicketNumber != prevTicketNumber) {
                     _numberTicketsPerLotteryId[_lotteryId][transformedTicketNumber]++;
@@ -597,12 +602,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         }
     }
 
-    function ticketNumberIsValid(uint32 ticketNumber) internal pure returns (bool) {
-        return (ticketNumber >= 0) && (ticketNumber <= 999999);
+    function ticketNumberIsValid(uint32 ticketNumber, uint8 numBrackets) internal pure returns (bool) {
+        return (ticketNumber >= 0) && (ticketNumber < maxNumber(numBrackets));
     }
 
-    function requireValidTicketNumber(uint32 ticketNumber) internal pure {
-        if (!ticketNumberIsValid(ticketNumber)) {
+    function requireValidTicketNumber(uint32 ticketNumber, uint8 numBrackets) internal pure {
+        if (!ticketNumberIsValid(ticketNumber, numBrackets)) {
             revert TicketNumberInvalid(ticketNumber);
         }
     }
