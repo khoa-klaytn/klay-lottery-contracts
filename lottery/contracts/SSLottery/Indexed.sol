@@ -224,14 +224,15 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
 
         requireOpen(_lotteryId);
-        if (block.timestamp >= _lotteries[_lotteryId].endTime) {
+        Lottery memory lottery = _lotteries[_lotteryId];
+        if (block.timestamp >= lottery.endTime) {
             revert LotteryOver();
         }
 
         // Calculate cost of tickets
         uint256 amountToTransfer = _calculateTotalPriceForBulkTickets(
-            _lotteries[_lotteryId].discountDivisor,
-            _lotteries[_lotteryId].ticketPrice,
+            lottery.discountDivisor,
+            lottery.ticketPrice,
             _ticketNumbers.length
         );
         demand(msg.value, amountToTransfer);
@@ -243,7 +244,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
             uint32 prevTicketNumber = thisTicketNumber;
             _numberTicketsPerLotteryId[_lotteryId][thisTicketNumber]++;
-            for (uint8 bracket = _lotteries[_lotteryId].numBrackets - 1; bracket != 0; bracket--) {
+            for (uint8 bracket = lottery.numBrackets - 1; bracket != 0; bracket--) {
                 uint32 transformedTicketNumber = transformNumber(thisTicketNumber, bracket);
                 if (transformedTicketNumber != prevTicketNumber) {
                     _numberTicketsPerLotteryId[_lotteryId][transformedTicketNumber]++;
