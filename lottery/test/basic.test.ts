@@ -10,10 +10,11 @@ describe("Basic Flow", () => {
   let endTime: bigint;
   let lottery_id: bigint;
   const finalNumber = 234561n;
-  const objAccountTicketIds = {
+  const obj_wallet_name_ticket_num_arr = {
     bob: [finalNumber],
     carol: [234560n, 234562n],
   };
+  const obj_wallet_name_ticket_id_arr = {} as Record<WalletName, bigint[]>;
 
   before(async () => {
     endTime = await EndTime(999n);
@@ -46,12 +47,14 @@ describe("Basic Flow", () => {
   });
 
   it("Bob buys 1 ticket", async () => {
-    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(objAccountTicketIds.bob.length);
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(
+      obj_wallet_name_ticket_num_arr.bob.length
+    );
     const buyTicketTx = await sendFn([
       "bob",
       "SSLottery",
       "buyTickets",
-      [lottery_id, objAccountTicketIds.bob],
+      [lottery_id, obj_wallet_name_ticket_num_arr.bob],
       { value },
     ]).catch(catchCustomErr("SSLottery"));
     const buyTicketReceipt = buyTicketTx[1];
@@ -61,12 +64,14 @@ describe("Basic Flow", () => {
   });
 
   it("Carol buys 2 tickets", async () => {
-    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(objAccountTicketIds.carol.length);
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(
+      obj_wallet_name_ticket_num_arr.carol.length
+    );
     const buyTicketTx = await sendFn([
       "carol",
       "SSLottery",
       "buyTickets",
-      [lottery_id, objAccountTicketIds.carol],
+      [lottery_id, obj_wallet_name_ticket_num_arr.carol],
       { value },
     ]).catch(catchCustomErr("SSLottery"));
     const buyTicketReceipt = buyTicketTx[1];
@@ -104,7 +109,7 @@ describe("Basic Flow", () => {
     expect(countWinnersPerBracket[0]).eq(2n);
   });
 
-  async function claimTickets(wallet_name: WalletName, size: number) {
+  async function getTicketIds(wallet_name: WalletName, size: number) {
     const tickets = await contracts.SSLottery.viewUserInfoForLotteryId(
       wallets[wallet_name].address,
       lottery_id,
@@ -112,6 +117,10 @@ describe("Basic Flow", () => {
       size
     );
     const ticketIds = tickets[0].toArray();
+    return ticketIds;
+  }
+
+  async function claimTickets(wallet_name: WalletName, ticketIds: bigint[]) {
     grayLog(`Ticket IDs: ${ticketIds}`);
     const claimTicketsTx = await sendFn([wallet_name, "SSLottery", "claimTickets", [lottery_id, ticketIds]]).catch(
       catchCustomErr("SSLottery")
@@ -121,13 +130,32 @@ describe("Basic Flow", () => {
     colorInfo("Reward", ticketsClaimEvent.args[1], ConsoleColor.FgGreen);
   }
 
+  it("Bob gets his ticket IDs", async () => {
+    const ticketIds = await getTicketIds("bob", 1);
+    obj_wallet_name_ticket_id_arr.bob = ticketIds;
+  });
+
+  it("Carol gets her ticket IDs", async () => {
+    const ticketIds = await getTicketIds("carol", 2);
+    obj_wallet_name_ticket_id_arr.carol = ticketIds;
+  });
+
+  it("Carol cannot claim Bob's tickets", async () => {
+    try {
+      await claimTickets("carol", obj_wallet_name_ticket_id_arr.bob);
+      throw Error("Was supposed to throw");
+    } catch (e) {
+      expect(e).instanceOf(Error);
+    }
+  });
+
   it("Bob claims his tickets", async () => {
-    await claimTickets("bob", 1).catch(catchCustomErr("SSLottery"));
+    await claimTickets("bob", obj_wallet_name_ticket_id_arr.bob).catch(catchCustomErr("SSLottery"));
   });
 
   it("Bob cannot claim claimed tickets", async () => {
     try {
-      await claimTickets("bob", 1);
+      await claimTickets("bob", obj_wallet_name_ticket_id_arr.bob);
       throw Error("Was supposed to throw");
     } catch (e) {
       expect(e).instanceOf(Error);
@@ -135,6 +163,6 @@ describe("Basic Flow", () => {
   });
 
   it("Carol claims her tickets", async () => {
-    await claimTickets("carol", 2).catch(catchCustomErr("SSLottery"));
+    await claimTickets("carol", obj_wallet_name_ticket_id_arr.carol).catch(catchCustomErr("SSLottery"));
   });
 });
