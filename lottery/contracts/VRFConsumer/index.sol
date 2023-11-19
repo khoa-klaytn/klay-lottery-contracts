@@ -3,13 +3,13 @@ pragma solidity ^0.8.16;
 
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
-import {ContractControlConsumer} from "./ContractControl/Consumer.sol";
-import {ContractName} from "./ContractControl/enum.sol";
-import {RoleControlConsumer} from "./RoleControl/Consumer.sol";
-import {RoleName} from "./RoleControl/enum.sol";
-import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
-import {ICoordinator} from "./interfaces/ICoordinator.sol";
-import {ISSLottery} from "./SSLottery/interfaces.sol";
+import {ContractControlConsumer} from "../ContractControl/Consumer.sol";
+import {ContractName} from "../ContractControl/enum.sol";
+import {RoleControlConsumer} from "../RoleControl/Consumer.sol";
+import {RoleName} from "../RoleControl/enum.sol";
+import {IVRFConsumer} from "../interfaces/IVRFConsumer.sol";
+import {ICoordinator} from "../interfaces/ICoordinator.sol";
+import {ISSLottery} from "../SSLottery/interfaces.sol";
 
 contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, RoleControlConsumer {
     ICoordinator internal coordinator;

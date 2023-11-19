@@ -2,11 +2,11 @@
 pragma solidity ^0.8.16;
 
 import {IAggregator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IAggregator.sol";
-import {ContractControlConsumer} from "./ContractControl/Consumer.sol";
-import {ContractName} from "./ContractControl/enum.sol";
-import {RoleControlConsumer} from "./RoleControl/Consumer.sol";
-import {RoleName} from "./RoleControl/enum.sol";
-import {IDataFeedConsumer} from "./interfaces/IDataFeedConsumer.sol";
+import {ContractControlConsumer} from "../ContractControl/Consumer.sol";
+import {ContractName} from "../ContractControl/enum.sol";
+import {RoleControlConsumer} from "../RoleControl/Consumer.sol";
+import {RoleName} from "../RoleControl/enum.sol";
+import {IDataFeedConsumer} from "../interfaces/IDataFeedConsumer.sol";
 
 error AnswerNonPositive();
 

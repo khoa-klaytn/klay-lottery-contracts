@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {SSLottery} from "./SSLottery/index.sol";
-import {RoleName} from "./RoleControl/enum.sol";
+import {RoleName} from "../RoleControl/enum.sol";
+import {SSLottery} from "./index.sol";
 
 contract TestSSLottery is SSLottery {
     constructor(

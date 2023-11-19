@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {VRFConsumer} from "./VRFConsumer.sol";
+import {VRFConsumer} from "./index.sol";
 
 contract TestVRFConsumer is VRFConsumer {
     constructor(
