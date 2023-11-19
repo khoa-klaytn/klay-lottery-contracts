@@ -111,6 +111,17 @@ export default config;
   return contract_config;
 }
 
+async function writeArtifact(contract_name: ContractName, contract_config: ContractConfig<any>) {
+  const contract_config_str = contractConfig(contract_config);
+  const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
+  await fs.writeFile(contract_config_path, contract_config_str);
+}
+
+async function syncConfig(contract_name: string, abi: ContractAbi, bytecode: string) {
+  obj_contract_name_config[contract_name]["abi"] = abi;
+  obj_contract_name_config[contract_name]["bytecode"] = bytecode;
+}
+
 async function syncArtifact<CName extends ContractName, CConfig extends ContractConfig<TypeContractNameAbi[CName]>>(
   contract_name: CName,
   { artifact, address, args }: Omit<CConfig, "abi" | "bytecode">
@@ -119,9 +130,10 @@ async function syncArtifact<CName extends ContractName, CConfig extends Contract
     ContractConfig<TypeContractNameAbi[CName]>,
     "abi" | "bytecode"
   >;
-  const contract_config = contractConfig({ abi, artifact, address, args, bytecode });
-  const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
-  await fs.writeFile(contract_config_path, contract_config);
+  await Promise.all([
+    writeArtifact(contract_name, { abi, bytecode, address, args, artifact }),
+    syncConfig(contract_name, abi, bytecode),
+  ]);
   colorInfo("Synced", `${contract_name} artifact`, ConsoleColor.FgGreen);
 }
 
