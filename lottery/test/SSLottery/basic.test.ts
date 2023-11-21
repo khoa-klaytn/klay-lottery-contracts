@@ -63,6 +63,11 @@ describe("Basic Flow", () => {
     expect(nTickets).to.equal(1n, "Bob should buy 1 ticket");
   });
 
+  it("Injector injects funds", async () => {
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(1);
+    await sendFn(["injector", "SSLottery", "injectFunds", [lottery_id], { value }]);
+  });
+
   it("Operator closes lottery", async () => {
     // Wait for lottery to end
     await sendFn(["operator", "SSLottery", "forceCloseLottery", [lottery_id]]).catch(catchCustomErr("SSLottery"));
