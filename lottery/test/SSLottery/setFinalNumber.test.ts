@@ -1,20 +1,21 @@
 import "@nomicfoundation/hardhat-ethers";
 import { expect } from "chai";
-import { contracts, startLottery_config, wallets } from "../globals";
-import { ConsoleColor, EndTime, catchCustomErr, colorInfo, findEvent, grayLog, readContract, sendFn } from "../helpers";
+import { contracts, startLottery_config } from "../../globals";
+import { EndTime, catchCustomErr, findEvent, readContract, sendFn } from "../../helpers";
+import { claimTickets, getTicketIds } from "../helpers";
 
-describe("Basic Flow", () => {
+describe("setFinalNumber to test winners", () => {
   // ----- //
   // Setup //
   // ----- //
   let endTime: bigint;
   let lottery_id: bigint;
   const finalNumber = 234561n;
-  const obj_wallet_name_ticket_num_arr = {
-    bob: [finalNumber],
-    carol: [234560n, 234562n],
-  };
-  const obj_wallet_name_ticket_id_arr = {} as Record<WalletName, bigint[]>;
+  type Tickets = { numbers: bigint[]; ids?: bigint[] };
+  const obj_wallet_name_tickets = {
+    bob: { numbers: [finalNumber] },
+    carol: { numbers: [234560n, 234562n] },
+  } as Record<WalletName, Tickets>;
 
   before(async () => {
     endTime = await EndTime(999n);
@@ -48,13 +49,13 @@ describe("Basic Flow", () => {
 
   it("Bob buys 1 ticket", async () => {
     const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(
-      obj_wallet_name_ticket_num_arr.bob.length
+      obj_wallet_name_tickets.bob.numbers.length
     );
     const buyTicketTx = await sendFn([
       "bob",
       "SSLottery",
       "buyTickets",
-      [lottery_id, obj_wallet_name_ticket_num_arr.bob],
+      [lottery_id, obj_wallet_name_tickets.bob.numbers],
       { value },
     ]).catch(catchCustomErr("SSLottery"));
     const buyTicketReceipt = buyTicketTx[1];
@@ -65,13 +66,13 @@ describe("Basic Flow", () => {
 
   it("Carol buys 2 tickets", async () => {
     const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(
-      obj_wallet_name_ticket_num_arr.carol.length
+      obj_wallet_name_tickets.carol.numbers.length
     );
     const buyTicketTx = await sendFn([
       "carol",
       "SSLottery",
       "buyTickets",
-      [lottery_id, obj_wallet_name_ticket_num_arr.carol],
+      [lottery_id, obj_wallet_name_tickets.carol.numbers],
       { value },
     ]).catch(catchCustomErr("SSLottery"));
     const buyTicketReceipt = buyTicketTx[1];
@@ -90,7 +91,7 @@ describe("Basic Flow", () => {
     await sendFn(["operator", "SSLottery", "forceCloseLottery", [lottery_id]]).catch(catchCustomErr("SSLottery"));
   });
 
-  it("Operator draws lottery", async () => {
+  it("Operator sets final number", async () => {
     const tx = await sendFn([
       "operator",
       "SSLottery",
@@ -109,40 +110,19 @@ describe("Basic Flow", () => {
     expect(countWinnersPerBracket[0]).eq(2n);
   });
 
-  async function getTicketIds(wallet_name: WalletName, size: number) {
-    const tickets = await contracts.SSLottery.viewUserInfoForLotteryId(
-      wallets[wallet_name].address,
-      lottery_id,
-      0,
-      size
-    );
-    const ticketIds = tickets[0].toArray();
-    return ticketIds;
-  }
-
-  async function claimTickets(wallet_name: WalletName, ticketIds: bigint[]) {
-    grayLog(`Ticket IDs: ${ticketIds}`);
-    const claimTicketsTx = await sendFn([wallet_name, "SSLottery", "claimTickets", [lottery_id, ticketIds]]).catch(
-      catchCustomErr("SSLottery")
-    );
-    const claimTicketsReceipt = claimTicketsTx[1];
-    const ticketsClaimEvent = findEvent(claimTicketsReceipt, "TicketsClaim");
-    colorInfo("Reward", ticketsClaimEvent.args[1], ConsoleColor.FgGreen);
-  }
-
   it("Bob gets his ticket IDs", async () => {
-    const ticketIds = await getTicketIds("bob", 1);
-    obj_wallet_name_ticket_id_arr.bob = ticketIds;
+    const ticketIds = await getTicketIds(lottery_id, "bob", 1);
+    obj_wallet_name_tickets.bob.ids = ticketIds;
   });
 
   it("Carol gets her ticket IDs", async () => {
-    const ticketIds = await getTicketIds("carol", 2);
-    obj_wallet_name_ticket_id_arr.carol = ticketIds;
+    const ticketIds = await getTicketIds(lottery_id, "carol", 2);
+    obj_wallet_name_tickets.carol.ids = ticketIds;
   });
 
   it("Carol cannot claim Bob's tickets", async () => {
     try {
-      await claimTickets("carol", obj_wallet_name_ticket_id_arr.bob);
+      await claimTickets(lottery_id, "carol", obj_wallet_name_tickets.bob.ids);
       throw Error("Was supposed to throw");
     } catch (e) {
       expect(e).instanceOf(Error);
@@ -150,12 +130,12 @@ describe("Basic Flow", () => {
   });
 
   it("Bob claims his tickets", async () => {
-    await claimTickets("bob", obj_wallet_name_ticket_id_arr.bob).catch(catchCustomErr("SSLottery"));
+    await claimTickets(lottery_id, "bob", obj_wallet_name_tickets.bob.ids).catch(catchCustomErr("SSLottery"));
   });
 
   it("Bob cannot claim claimed tickets", async () => {
     try {
-      await claimTickets("bob", obj_wallet_name_ticket_id_arr.bob);
+      await claimTickets(lottery_id, "bob", obj_wallet_name_tickets.bob.ids);
       throw Error("Was supposed to throw");
     } catch (e) {
       expect(e).instanceOf(Error);
@@ -163,6 +143,6 @@ describe("Basic Flow", () => {
   });
 
   it("Carol claims her tickets", async () => {
-    await claimTickets("carol", obj_wallet_name_ticket_id_arr.carol).catch(catchCustomErr("SSLottery"));
+    await claimTickets(lottery_id, "carol", obj_wallet_name_tickets.carol.ids).catch(catchCustomErr("SSLottery"));
   });
 });

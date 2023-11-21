@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { startLottery_config } from "../globals";
-import { EndTime, sendFn } from "../helpers";
+import { startLottery_config } from "../../globals";
+import { EndTime, sendFn } from "../../helpers";
 
 describe("startLottery", () => {
   let endTime: bigint;
