@@ -2,7 +2,7 @@ import "@nomicfoundation/hardhat-ethers";
 import { expect } from "chai";
 import { contracts, startLottery_config } from "../../globals";
 import { EndTime, catchCustomErr, findEvent, readContract, sendFn } from "../../helpers";
-import { claimTickets, getTicketIds } from "../helpers";
+import { claimTickets, getTicketIds, stepSSLottery } from "../helpers";
 
 describe("Basic Flow", () => {
   // ----- //
@@ -16,6 +16,7 @@ describe("Basic Flow", () => {
   } as Record<WalletName, Tickets>;
 
   before(async () => {
+    await stepSSLottery();
     endTime = await EndTime(999n);
     lottery_id = BigInt(await readContract("owner", "SSLottery", "currentLotteryId"));
   });

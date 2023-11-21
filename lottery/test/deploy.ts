@@ -23,7 +23,12 @@ export default async function deploy() {
 
   // Chain stuff
   let role_control_address = findContract("RoleControl");
-  if (!role_control_address) role_control_address = await deployContract("RoleControl", []);
+  if (!role_control_address) {
+    role_control_address = await deployContract("RoleControl", []);
+    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Operator, wallets.operator.address]]);
+    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Injector, wallets.injector.address]]);
+    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Querier, wallets.querier.address]]);
+  }
 
   let contract_control_address = findContract("ContractControl");
   try {
@@ -56,10 +61,6 @@ export default async function deploy() {
       obj_contract_name_config.DataFeedConsumer.args._aggregatorProxyAddress,
     ]);
 
-  await sendFn(["owner", "RoleControl", "addMember", [RoleName.Operator, wallets.operator.address]]);
-  await sendFn(["owner", "RoleControl", "addMember", [RoleName.Injector, wallets.injector.address]]);
-  await sendFn(["owner", "RoleControl", "addMember", [RoleName.Querier, wallets.querier.address]]);
-
   const base_usd = Number(await readContract("querier", "DataFeedConsumer", "queryBaseUsd"));
   const minTicketPriceInUsd = BigInt(Math.round(0.005 * base_usd));
   startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.1 * base_usd));
@@ -70,8 +71,6 @@ export default async function deploy() {
       contract_control_address,
       minTicketPriceInUsd,
     ]);
-
-  await sendFn(["owner", "SSLottery", "reset"]);
 }
 
 // ------- //

@@ -1,11 +1,13 @@
 import { expect } from "chai";
 import { startLottery_config } from "../../globals";
 import { EndTime, sendFn } from "../../helpers";
+import { stepSSLottery } from "../helpers";
 
 describe("startLottery", () => {
   let endTime: bigint;
 
   before(async () => {
+    await stepSSLottery();
     endTime = await EndTime(999n);
   });
 

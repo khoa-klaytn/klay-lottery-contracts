@@ -5,15 +5,13 @@ import {RoleName} from "../RoleControl/enum.sol";
 import {SSLottery} from "./index.sol";
 
 contract TestSSLottery is SSLottery {
-    constructor(
-        address _roleControlAddress,
-        address _contractControlAddress,
-        uint256 _minTicketPriceInUsd
-    ) SSLottery(_roleControlAddress, _contractControlAddress, _minTicketPriceInUsd) {}
+    constructor(address _roleControlAddress, address _contractControlAddress, uint256 _minTicketPriceInUsd)
+        SSLottery(_roleControlAddress, _contractControlAddress, _minTicketPriceInUsd)
+    {}
 
-    function reset() external onlyRole(RoleName.Owner) {
-        currentLotteryId = 0;
-        currentTicketId = 0;
+    function step() external onlyRole(RoleName.Owner) {
+        _lotteries[currentLotteryId].status = Status.Claimable;
+        currentTicketId++;
     }
 
     /**
@@ -25,11 +23,11 @@ contract TestSSLottery is SSLottery {
         _closeLottery(_lotteryId);
     }
 
-    function setFinalNumberAndMakeLotteryClaimable(
-        uint256 _lotteryId,
-        bool _autoInjection,
-        uint32 _finalNumber
-    ) external onlyRole(RoleName.Operator) nonReentrant {
+    function setFinalNumberAndMakeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber)
+        external
+        onlyRole(RoleName.Operator)
+        nonReentrant
+    {
         requireClose(_lotteryId);
         requireValidTicketNumber(_finalNumber, _lotteries[_lotteryId].numBrackets);
         makeLotteryClaimable(_lotteryId, _autoInjection, _finalNumber);

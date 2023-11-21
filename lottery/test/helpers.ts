@@ -1,6 +1,10 @@
 import { contracts, wallets } from "../globals";
 import { ConsoleColor, catchCustomErr, colorInfo, findEvent, grayLog, sendFn } from "../helpers";
 
+export function stepSSLottery() {
+  return sendFn(["owner", "SSLottery", "step"]);
+}
+
 export async function getTicketIds(lottery_id: bigint, wallet_name: WalletName, size: number) {
   const tickets = await contracts.SSLottery.viewUserInfoForLotteryId(wallets[wallet_name].address, lottery_id, 0, size);
   const ticketIds = tickets[0].toArray();
