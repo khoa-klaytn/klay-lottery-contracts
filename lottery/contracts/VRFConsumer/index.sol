@@ -95,9 +95,12 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
     /**
      * @notice Request random number using Temporary Account
      */
-    function requestRandomNumberDirect(
-        address sender
-    ) external payable override onlyControlContract(ContractName.SSLottery) {
+    function requestRandomNumberDirect(address sender)
+        external
+        payable
+        override
+        onlyControlContract(ContractName.SSLottery)
+    {
         latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, sender);
     }
 

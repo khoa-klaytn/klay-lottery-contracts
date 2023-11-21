@@ -64,7 +64,7 @@ describe("Basic Flow", () => {
   });
 
   it("Injector injects funds", async () => {
-    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(1);
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(3);
     await sendFn(["injector", "SSLottery", "injectFunds", [lottery_id], { value }]);
   });
 
