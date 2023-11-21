@@ -124,6 +124,10 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
     // OwnerMember functions //
     // --------------------- //
 
+    function setCoordinator(address _coordinatorAddress) external onlyRole(RoleName.Owner) {
+        coordinator = ICoordinator(_coordinatorAddress);
+    }
+
     function cancelRequest(uint256 requestId) external onlyRole(RoleName.Owner) {
         coordinator.cancelRequest(requestId);
     }
