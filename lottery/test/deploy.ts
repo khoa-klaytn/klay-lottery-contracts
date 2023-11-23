@@ -28,6 +28,8 @@ export default async function deploy() {
     await sendFn(["owner", "RoleControl", "addMember", [RoleName.Operator, wallets.operator.address]]);
     await sendFn(["owner", "RoleControl", "addMember", [RoleName.Injector, wallets.injector.address]]);
     await sendFn(["owner", "RoleControl", "addMember", [RoleName.Querier, wallets.querier.address]]);
+    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Operator, wallets.server.address]]);
+    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Querier, wallets.server.address]]);
   }
 
   let contract_control_address = findContract("ContractControl");

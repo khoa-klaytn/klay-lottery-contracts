@@ -1,5 +1,5 @@
 declare global {
-  type WalletName = "owner" | "bob" | "carol" | "operator" | "injector" | "querier";
+  type WalletName = "owner" | "bob" | "carol" | "operator" | "injector" | "querier" | "server";
   type WalletConfig = {
     privateKey: HexStr;
   };
