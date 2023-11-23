@@ -28,7 +28,7 @@ error LotteryOver();
 error TicketNumberInvalid(uint32 number);
 error InsufficientFunds(uint256 sending, uint256 demanding);
 
-error LotteryNotOver(uint256 endTime);
+error LotteryNotOver(uint256 timestamp, uint256 endTime);
 
 error LotteryNotClose();
 error FinalNumberNotDrawn();
@@ -321,9 +321,10 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      */
     function closeLottery(uint256 _lotteryId) external onlyRole(RoleName.Operator) nonReentrant {
         requireOpen(_lotteryId);
+        uint256 timestamp = block.timestamp;
         uint256 endTime = _lotteries[_lotteryId].endTime;
-        if (block.timestamp < endTime) {
-            revert LotteryNotOver(endTime);
+        if (timestamp < endTime) {
+            revert LotteryNotOver(timestamp, endTime);
         }
         _closeLottery(_lotteryId);
     }
