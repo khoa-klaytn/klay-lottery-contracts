@@ -28,7 +28,7 @@ error LotteryOver();
 error TicketNumberInvalid(uint32 number);
 error InsufficientFunds(uint256 sending, uint256 demanding);
 
-error LotteryNotOver();
+error LotteryNotOver(uint256 endTime);
 
 error LotteryNotClose();
 error FinalNumberNotDrawn();
@@ -133,11 +133,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     event LotteryNumberDrawn(uint256 indexed lotteryId, uint32 finalNumber, uint256 countWinningTickets);
     event TicketsClaim(address indexed claimer, uint256 amount, uint256 indexed lotteryId, uint256 numberTickets);
 
-    constructor(
-        address _roleControlAddress,
-        address _contractControlAddress,
-        uint256 _minTicketPriceInUsd
-    )
+    constructor(address _roleControlAddress, address _contractControlAddress, uint256 _minTicketPriceInUsd)
         ContractControlConsumer(_contractControlAddress, ContractName.SSLottery)
         RoleControlConsumer(_roleControlAddress)
     {
@@ -220,10 +216,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      * @param _ticketNumbers: array of ticket numbers between 0 and 999,999
      * @dev Callable by users
      */
-    function buyTickets(
-        uint256 _lotteryId,
-        uint32[] calldata _ticketNumbers
-    ) external payable notContract nonReentrant {
+    function buyTickets(uint256 _lotteryId, uint32[] calldata _ticketNumbers)
+        external
+        payable
+        notContract
+        nonReentrant
+    {
         require(_ticketNumbers.length != 0, "No ticket specified");
         require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
 
@@ -234,11 +232,8 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         }
 
         // Calculate cost of tickets
-        uint256 amountToTransfer = _calculateTotalPriceForBulkTickets(
-            lottery.discountDivisor,
-            lottery.ticketPrice,
-            _ticketNumbers.length
-        );
+        uint256 amountToTransfer =
+            _calculateTotalPriceForBulkTickets(lottery.discountDivisor, lottery.ticketPrice, _ticketNumbers.length);
         demand(msg.value, amountToTransfer);
 
         uint8 numBrackets = lottery.numBrackets;
@@ -326,8 +321,9 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      */
     function closeLottery(uint256 _lotteryId) external onlyRole(RoleName.Operator) nonReentrant {
         requireOpen(_lotteryId);
-        if (block.timestamp < _lotteries[_lotteryId].endTime) {
-            revert LotteryNotOver();
+        uint256 endTime = _lotteries[_lotteryId].endTime;
+        if (block.timestamp < endTime) {
+            revert LotteryNotOver(endTime);
         }
         _closeLottery(_lotteryId);
     }
@@ -355,11 +351,10 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         }
     }
 
-    function makeLotteryClaimable(
-        uint256 _lotteryId,
-        bool _autoInjection,
-        uint32 _finalNumber
-    ) internal onlyRole(RoleName.Operator) {
+    function makeLotteryClaimable(uint256 _lotteryId, bool _autoInjection, uint32 _finalNumber)
+        internal
+        onlyRole(RoleName.Operator)
+    {
         uint256 numWinners;
 
         Lottery memory lottery = _lotteries[_lotteryId];
@@ -408,10 +403,11 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      * @param _autoInjection: reinjects funds into next lottery (vs. withdrawing all)
      * @dev Callable by operator
      */
-    function drawFinalNumberAndMakeLotteryClaimable(
-        uint256 _lotteryId,
-        bool _autoInjection
-    ) external onlyRole(RoleName.Operator) nonReentrant {
+    function drawFinalNumberAndMakeLotteryClaimable(uint256 _lotteryId, bool _autoInjection)
+        external
+        onlyRole(RoleName.Operator)
+        nonReentrant
+    {
         requireClose(_lotteryId);
         if (_lotteryId != vrfConsumer.latestLotteryId()) {
             revert FinalNumberNotDrawn();
@@ -436,10 +432,11 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         countWinnersPerBracket[i] = 0;
     }
 
-    function initRewardPortions(
-        uint16[] calldata _rewardPortions,
-        uint8 numBrackets
-    ) internal pure returns (uint16[] memory, uint256[] memory, uint256[] memory) {
+    function initRewardPortions(uint16[] calldata _rewardPortions, uint8 numBrackets)
+        internal
+        pure
+        returns (uint16[] memory, uint256[] memory, uint256[] memory)
+    {
         uint8 rewardPortionsLen = numBrackets + 1;
 
         uint16[] memory rewardPortions = new uint16[](rewardPortionsLen);
@@ -452,12 +449,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         for (uint8 i = numBrackets; i != 0; i--) {
             uint16 rewardPortion = _rewardPortions[i - 1];
             initRewardPortion(
-                rewardPortions,
-                rewardPerUserPerBracket,
-                countWinnersPerBracket,
-                i,
-                rewardPortion,
-                nextRewardPortion
+                rewardPortions, rewardPerUserPerBracket, countWinnersPerBracket, i, rewardPortion, nextRewardPortion
             );
             nextRewardPortion = rewardPortion;
             rewardPortionsTotal += rewardPortion;
@@ -466,12 +458,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
         uint16 allWinnersPortion = MAX_PORTION - rewardPortionsTotal;
         initRewardPortion(
-            rewardPortions,
-            rewardPerUserPerBracket,
-            countWinnersPerBracket,
-            0,
-            allWinnersPortion,
-            nextRewardPortion
+            rewardPortions, rewardPerUserPerBracket, countWinnersPerBracket, 0, allWinnersPortion, nextRewardPortion
         );
 
         return (rewardPortions, rewardPerUserPerBracket, countWinnersPerBracket);
@@ -613,9 +600,8 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     }
 
     function ticketIdIsValid(uint256 lotteryId, uint256 ticketId) internal view returns (bool) {
-        return
-            (ticketId >= _lotteries[lotteryId].firstTicketId) &&
-            (ticketId < _lotteries[lotteryId].firstTicketIdNextLottery);
+        return (ticketId >= _lotteries[lotteryId].firstTicketId)
+            && (ticketId < _lotteries[lotteryId].firstTicketIdNextLottery);
     }
 
     function requireValidTicketId(uint256 lotteryId, uint256 ticketId) internal view {
@@ -660,11 +646,11 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      * @param _ticketPrice: price of a ticket
      * @param _numberTickets: number of tickets purchased
      */
-    function _calculateTotalPriceForBulkTickets(
-        uint256 _discountDivisor,
-        uint256 _ticketPrice,
-        uint256 _numberTickets
-    ) internal pure returns (uint256) {
+    function _calculateTotalPriceForBulkTickets(uint256 _discountDivisor, uint256 _ticketPrice, uint256 _numberTickets)
+        internal
+        pure
+        returns (uint256)
+    {
         return (_ticketPrice * _numberTickets * (_discountDivisor + 1 - _numberTickets)) / _discountDivisor;
     }
 }
