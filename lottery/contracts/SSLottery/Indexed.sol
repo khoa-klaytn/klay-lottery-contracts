@@ -305,9 +305,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         _lotteries[_lotteryId].firstTicketIdNextLottery = currentTicketId;
 
         // Request a random number from the generator
-        uint256 fee = vrfConsumer.estimateFee();
-        demand(thisAddress.balance, fee);
-        vrfConsumer.requestRandomNumberDirect{value: fee}(thisAddress);
+        vrfConsumer.requestRandomNumber();
 
         _lotteries[_lotteryId].status = Status.Close;
 

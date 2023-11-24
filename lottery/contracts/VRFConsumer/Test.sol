@@ -10,7 +10,8 @@ contract TestVRFConsumer is VRFConsumer {
         address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit,
-        address _prepaymentAddress
+        address _prepaymentAddress,
+        uint64 _prepaymentAccId
     )
         VRFConsumer(
             _roleControlAddress,
@@ -18,16 +19,10 @@ contract TestVRFConsumer is VRFConsumer {
             _coordinatorAddress,
             _keyHash,
             _callbackGasLimit,
-            _prepaymentAddress
+            _prepaymentAddress,
+            _prepaymentAccId
         )
     {}
-
-    /**
-     * @notice Request random number using Temporary Account
-     */
-    function requestRandomNumberDirectTest() external payable {
-        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, msg.sender);
-    }
 
     function viewKeyHash() external view returns (bytes32) {
         return keyHash;

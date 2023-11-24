@@ -1,7 +1,7 @@
 import "@nomicfoundation/hardhat-ethers";
 import { expect } from "chai";
 import { contracts, startLottery_config } from "../../globals";
-import { EndTime, catchCustomErr, findEvent, readContract, sendFn } from "../../helpers";
+import { EndTime, catchCustomErr, depositPrepayment, findEvent, readContract, sendFn } from "../../helpers";
 import { claimTickets, getTicketIds, stepSSLottery } from "../helpers";
 
 describe("setFinalNumber to test winners", () => {
@@ -83,6 +83,8 @@ describe("setFinalNumber to test winners", () => {
   });
 
   it("Operator closes lottery", async () => {
+    const fee = await readContract("owner", "VRFConsumer", "estimateFee");
+    await depositPrepayment(fee);
     // Wait for lottery to end
     await sendFn(["operator", "SSLottery", "forceCloseLottery", [lottery_id]]).catch(catchCustomErr("SSLottery"));
   });

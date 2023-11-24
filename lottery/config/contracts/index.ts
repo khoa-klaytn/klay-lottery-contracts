@@ -4,6 +4,7 @@ import Treasury, { type Abi as TreasuryAbi } from "./Treasury";
 import VRFConsumer, { type Abi as VRFConsumerAbi } from "./VRFConsumer";
 import DataFeedConsumer, { type Abi as DataFeedConsumerAbi } from "./DataFeedConsumer";
 import SSLottery, { type Abi as SSLotteryAbi } from "./SSLottery";
+import Prepayment, { type Abi as PrepaymentAbi } from "./Prepayment";
 
 const obj_contract_name_config = {
 
@@ -13,6 +14,7 @@ const obj_contract_name_config = {
   VRFConsumer,
   DataFeedConsumer,
   SSLottery,
+  Prepayment
 };
 
 export default obj_contract_name_config;
@@ -24,4 +26,5 @@ export type TypeContractNameAbi = {
   VRFConsumer: VRFConsumerAbi;
   DataFeedConsumer: DataFeedConsumerAbi;
   SSLottery: SSLotteryAbi;
+  Prepayment: PrepaymentAbi;
 };

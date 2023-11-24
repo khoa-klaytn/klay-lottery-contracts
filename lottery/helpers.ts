@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { time } from "@openzeppelin/test-helpers";
 import { contracts, wallets } from "./globals";
+import obj_contract_name_config from "./config/contracts";
 
 /**
  * Adapted from https://stackoverflow.com/a/41407246
@@ -187,4 +188,14 @@ export function findEvent(receipt: ethers.TransactionReceipt, _eventName: string
     throw new Error(`${eventName} event not found`);
   }
   return event;
+}
+
+export function depositPrepayment(fee: bigint) {
+  return sendFn([
+    "owner",
+    "Prepayment",
+    "deposit",
+    [obj_contract_name_config.Prepayment.args.accId],
+    { value: fee },
+  ]).catch(catchCustomErr("Prepayment"));
 }

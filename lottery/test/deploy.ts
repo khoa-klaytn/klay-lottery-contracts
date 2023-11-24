@@ -21,6 +21,9 @@ export default async function deploy() {
   );
   await Promise.all(artifact_promise_arr);
 
+  // External contracts
+  findContract("Prepayment");
+
   // Chain stuff
   let role_control_address = findContract("RoleControl");
   if (!role_control_address) {
@@ -55,7 +58,14 @@ export default async function deploy() {
       obj_contract_name_config.VRFConsumer.args._keyHash,
       obj_contract_name_config.VRFConsumer.args._callbackGasLimit,
       obj_contract_name_config.VRFConsumer.args._prepaymentAddress,
+      obj_contract_name_config.Prepayment.args.accId,
     ]);
+  await sendFn([
+    "owner",
+    "Prepayment",
+    "addConsumer",
+    [obj_contract_name_config.Prepayment.args.accId, vrf_consumer_address],
+  ]);
   let dfc_address = findContract("DataFeedConsumer");
   if (!dfc_address)
     dfc_address = await deployContract("DataFeedConsumer", [

@@ -11,6 +11,8 @@ import {IVRFConsumer} from "../interfaces/IVRFConsumer.sol";
 import {ICoordinator} from "../interfaces/ICoordinator.sol";
 import {ISSLottery} from "../SSLottery/interfaces.sol";
 
+error WithdrawFailed();
+
 contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, RoleControlConsumer {
     ICoordinator internal coordinator;
     IPrepayment internal prepayment;
@@ -30,7 +32,8 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
         address _coordinatorAddress,
         bytes32 _keyHash,
         uint32 _callbackGasLimit,
-        address _prepaymentAddress
+        address _prepaymentAddress,
+        uint64 _prepaymentAccId
     )
         VRFConsumerBase(_coordinatorAddress)
         ContractControlConsumer(_contractControlAddress, ContractName.VRFConsumer)
@@ -40,10 +43,7 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
 
-        IPrepayment _prepayment = IPrepayment(_prepaymentAddress);
-        uint64 _prepaymentAccId = _prepayment.createAccount();
-        _prepayment.addConsumer(_prepaymentAccId, thisAddress);
-        prepayment = _prepayment;
+        prepayment = IPrepayment(_prepaymentAddress);
         prepaymentAccId = _prepaymentAccId;
     }
 
@@ -86,7 +86,8 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
     }
 
     function estimateFee() external view returns (uint256) {
-        return coordinator.estimateFee(1, 1, callbackGasLimit);
+        uint64 reqCount = prepayment.getReqCount(prepaymentAccId);
+        return coordinator.estimateFee(reqCount, 1, callbackGasLimit);
     }
 
     // --------------------- //
@@ -95,22 +96,9 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
 
     /**
      * @notice Request random number using Permanent Account
-     * @param accId: Permanent Account ID
      */
-    function requestRandomNumber(uint64 accId) external override onlyControlContract(ContractName.SSLottery) {
-        latestRequestId = coordinator.requestRandomWords(keyHash, accId, callbackGasLimit, 1);
-    }
-
-    /**
-     * @notice Request random number using Temporary Account
-     */
-    function requestRandomNumberDirect(address sender)
-        external
-        payable
-        override
-        onlyControlContract(ContractName.SSLottery)
-    {
-        latestRequestId = coordinator.requestRandomWords{value: msg.value}(keyHash, callbackGasLimit, 1, sender);
+    function requestRandomNumber() external override onlyControlContract(ContractName.SSLottery) {
+        latestRequestId = coordinator.requestRandomWords(keyHash, prepaymentAccId, callbackGasLimit, 1);
     }
 
     // ----------------- //
@@ -137,13 +125,12 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
         coordinator = ICoordinator(_coordinatorAddress);
     }
 
-    function setPrepayment(address _prepaymentAddress) external onlyRole(RoleName.Owner) {
-        prepayment.removeConsumer(prepaymentAccId, thisAddress);
+    function setPrepayment(address _prepaymentAddress, uint64 _prepaymentAccId) external onlyRole(RoleName.Owner) {
+        prepayment = IPrepayment(_prepaymentAddress);
+        prepaymentAccId = _prepaymentAccId;
+    }
 
-        IPrepayment _prepayment = IPrepayment(_prepaymentAddress);
-        uint64 _prepaymentAccId = _prepayment.createAccount();
-        _prepayment.addConsumer(_prepaymentAccId, thisAddress);
-        prepayment = _prepayment;
+    function setPrepaymentAccId(uint64 _prepaymentAccId) external onlyRole(RoleName.Owner) {
         prepaymentAccId = _prepaymentAccId;
     }
 
@@ -151,9 +138,12 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
         coordinator.cancelRequest(requestId);
     }
 
-    function withdrawTemporary(uint64 accId) external onlyRole(RoleName.Owner) {
-        address prepaymentAddress = coordinator.getPrepaymentAddress();
-        IPrepayment(prepaymentAddress).withdrawTemporary(accId, payable(msg.sender));
+    function withdraw(uint256 amount) external onlyOwner {
+        prepayment.withdraw(prepaymentAccId, amount);
+        bool sent = payable(msg.sender).send(amount);
+        if (!sent) {
+            revert WithdrawFailed();
+        }
     }
 
     /**
