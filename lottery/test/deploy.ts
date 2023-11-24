@@ -44,8 +44,8 @@ export default async function deploy() {
   let treasury_address = findContract("Treasury");
   if (!treasury_address) {
     treasury_address = await deployContract("Treasury", []);
-    await sendFn(["owner", "ContractControl", "setContractAddress", [ContractName.Treasury, treasury_address]]);
   }
+  await sendFn(["owner", "ContractControl", "setContractAddress", [ContractName.Treasury, treasury_address]]);
   let vrf_consumer_address = findContract("VRFConsumer");
   if (!vrf_consumer_address)
     vrf_consumer_address = await deployContract("VRFConsumer", [
