@@ -54,6 +54,7 @@ export default async function deploy() {
       obj_contract_name_config.VRFConsumer.args._coordinatorAddress,
       obj_contract_name_config.VRFConsumer.args._keyHash,
       obj_contract_name_config.VRFConsumer.args._callbackGasLimit,
+      obj_contract_name_config.VRFConsumer.args._prepaymentAddress,
     ]);
   let dfc_address = findContract("DataFeedConsumer");
   if (!dfc_address)

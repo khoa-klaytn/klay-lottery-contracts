@@ -13,6 +13,8 @@ import {ISSLottery} from "../SSLottery/interfaces.sol";
 
 contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, RoleControlConsumer {
     ICoordinator internal coordinator;
+    IPrepayment internal prepayment;
+    uint64 internal prepaymentAccId;
     address internal ssLotteryAddress;
     ISSLottery internal ssLottery;
 
@@ -27,7 +29,8 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
         address _contractControlAddress,
         address _coordinatorAddress,
         bytes32 _keyHash,
-        uint32 _callbackGasLimit
+        uint32 _callbackGasLimit,
+        address _prepaymentAddress
     )
         VRFConsumerBase(_coordinatorAddress)
         ContractControlConsumer(_contractControlAddress, ContractName.VRFConsumer)
@@ -36,6 +39,12 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
         coordinator = ICoordinator(_coordinatorAddress);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
+
+        IPrepayment _prepayment = IPrepayment(_prepaymentAddress);
+        uint64 _prepaymentAccId = _prepayment.createAccount();
+        _prepayment.addConsumer(_prepaymentAccId, thisAddress);
+        prepayment = _prepayment;
+        prepaymentAccId = _prepaymentAccId;
     }
 
     function addRoleDependencies() internal override {
@@ -126,6 +135,16 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
 
     function setCoordinator(address _coordinatorAddress) external onlyRole(RoleName.Owner) {
         coordinator = ICoordinator(_coordinatorAddress);
+    }
+
+    function setPrepayment(address _prepaymentAddress) external onlyRole(RoleName.Owner) {
+        prepayment.removeConsumer(prepaymentAccId, thisAddress);
+
+        IPrepayment _prepayment = IPrepayment(_prepaymentAddress);
+        uint64 _prepaymentAccId = _prepayment.createAccount();
+        _prepayment.addConsumer(_prepaymentAccId, thisAddress);
+        prepayment = _prepayment;
+        prepaymentAccId = _prepaymentAccId;
     }
 
     function cancelRequest(uint256 requestId) external onlyRole(RoleName.Owner) {
