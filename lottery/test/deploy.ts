@@ -16,7 +16,7 @@ const ContractName = Enum("Treasury", "DataFeedConsumer", "VRFConsumer", "SSLott
 export default async function deploy() {
   // Sync artifacts
   const artifact_promise_arr = Object.entries(obj_contract_name_config).map(
-    async ([contract_name, { abi: _abi, bytecode: _bytecode, ...config }]) => {
+    async ([contract_name, { abi: _abi, ...config }]) => {
       await syncArtifact(contract_name as ContractName, config);
     }
   );
@@ -90,9 +90,7 @@ function contractConfig<CName extends ContractName>({
   abi,
   artifact,
   address,
-  args,
-  bytecode,
-}: ContractConfig<TypeContractNameAbi[CName]>) {
+}: Omit<ContractConfig<TypeContractNameAbi[CName]>, "bytecode">) {
   let contract_config = `
 const abi = ${JSON.stringify(abi)} as const satisfies ContractAbi;
 
@@ -102,15 +100,9 @@ const config: ContractConfig<Abi> = {`;
   if (typeof address !== "undefined")
     contract_config += `
   address: "${address}", // Keep this on top since the others can get long`;
-  if (typeof args !== "undefined")
-    contract_config += `
-  args: ${JSON.stringify(args, (k, v) => (typeof v === "bigint" ? `${v.toString()}n` : v))},`.replace(/"(\d+n)"/, "$1");
   contract_config += `
   artifact: "${artifact}",
   abi,`;
-  if (typeof bytecode !== "undefined")
-    contract_config += `
-  bytecode: "${bytecode}",`;
   contract_config += `
 };
 
@@ -119,7 +111,7 @@ export default config;
   return contract_config;
 }
 
-async function writeArtifact(contract_name: ContractName, contract_config: ContractConfig<any>) {
+async function writeArtifact(contract_name: ContractName, contract_config: Omit<ContractConfig<any>, "bytecode">) {
   const contract_config_str = contractConfig(contract_config);
   const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
   await fs.writeFile(contract_config_path, contract_config_str);
@@ -132,14 +124,14 @@ async function syncConfig(contract_name: string, abi: ContractAbi, bytecode: str
 
 async function syncArtifact<CName extends ContractName, CConfig extends ContractConfig<TypeContractNameAbi[CName]>>(
   contract_name: CName,
-  { artifact, address, args }: Omit<CConfig, "abi" | "bytecode">
+  { artifact, address }: Omit<CConfig, "abi" | "bytecode">
 ) {
   const { abi, bytecode } = (await import(artifact, { assert: { type: "json" } })).default as Pick<
     ContractConfig<TypeContractNameAbi[CName]>,
     "abi" | "bytecode"
   >;
   await Promise.all([
-    writeArtifact(contract_name, { abi, bytecode, address, args, artifact }),
+    writeArtifact(contract_name, { abi, address, artifact }),
     syncConfig(contract_name, abi, bytecode),
   ]);
   colorInfo("Synced", `${contract_name} artifact`, ConsoleColor.FgGreen);
@@ -158,7 +150,7 @@ function findContract<T extends ContractName>(contract_name: T) {
   return address;
 }
 async function deployContract<T extends ContractName>(contract_name: T, args: any[]) {
-  const { abi, bytecode } = obj_contract_name_config[contract_name];
+  const { abi, bytecode } = obj_contract_name_config[contract_name] as ContractConfig<TypeContractNameAbi[T]>;
   const abi_interface = new ethers.Interface(abi);
   const Contract = new ethers.ContractFactory(abi_interface, bytecode, wallets.owner);
   const contract = await Contract.deploy(...args);
