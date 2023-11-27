@@ -1,22 +1,13 @@
-import "dotenv/config";
-import type { HardhatUserConfig, NetworkUserConfig } from "hardhat/types";
+import type { HardhatUserConfig } from "hardhat/types";
 import "@nomicfoundation/hardhat-ethers";
 import "hardhat-abi-exporter";
 import "hardhat-contract-sizer";
 import "solidity-coverage";
+import mainnet_private_config from "./config/mainnet.private";
+import mainnet_public_config from "./config/mainnet.public";
+import testnet_private_config from "./config/testnet.private";
+import testnet_public_config from "./config/testnet.public";
 import deploy from "./test/deploy";
-
-const testnet: NetworkUserConfig = {
-  url: "https://public-en-baobab.klaytn.net/",
-  chainId: 1001,
-  accounts: [process.env.KEY_TESTNET!],
-};
-
-const mainnet: NetworkUserConfig = {
-  url: "https://public-en-cypress.klaytn.net/",
-  chainId: 8217,
-  accounts: [process.env.KEY_MAINNET!],
-};
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -25,8 +16,16 @@ const config: HardhatUserConfig = {
       gas: 120000000,
       blockGasLimit: 0x1fffffffffffff,
     },
-    testnet,
-    mainnet,
+    testnet: {
+      url: testnet_public_config.Url,
+      chainId: testnet_public_config.ChainId,
+      accounts: [testnet_private_config.WalletKey],
+    },
+    mainnet: {
+      url: mainnet_public_config.Url,
+      chainId: mainnet_public_config.ChainId,
+      accounts: [mainnet_private_config.WalletKey],
+    },
   },
   solidity: {
     version: "0.8.16",

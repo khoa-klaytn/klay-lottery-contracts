@@ -22,6 +22,8 @@ yarn-error.log*
 **/config/**/*.ts
 !**/config/**/*example.ts
 !**/config/**/index.ts
+!**/config/**/*.public.ts
+!**/config/**/example.private.ts
 
 # artifacts/cache/data
 artifacts
