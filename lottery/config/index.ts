@@ -12,6 +12,10 @@ const config =
           ...mainnet_public_config.args,
           ...mainnet_private_config.args,
         },
+        Contracts: {
+          ...mainnet_public_config.Contracts,
+          ...mainnet_private_config.Contracts,
+        },
       }
     : {
         ...testnet_public_config,
@@ -19,6 +23,10 @@ const config =
         args: {
           ...testnet_public_config.args,
           ...testnet_private_config.args,
+        },
+        Contracts: {
+          ...testnet_public_config.Contracts,
+          ...testnet_private_config.Contracts,
         },
       };
 

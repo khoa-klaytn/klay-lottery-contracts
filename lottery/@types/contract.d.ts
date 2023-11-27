@@ -20,19 +20,21 @@ declare global {
         : never
       : never;
   };
-  type ContractConfig<T extends ContractAbi> = {
+  type ContractConfigSync<T extends ContractAbi> = {
     artifact: string;
     abi: T;
-  } & ( // Either address or bytecode must be defined
-    | {
-        address: HexStr;
-        bytecode?: string;
-      }
-    | {
-        address?: "";
-        bytecode: string;
-      }
-  );
+  };
+  type ContractConfig<T extends ContractAbi> = ContractConfigSync<T> & // Either address or bytecode must be defined
+    (
+      | {
+          address: HexStr;
+          bytecode?: string;
+        }
+      | {
+          address?: "";
+          bytecode: string;
+        }
+    );
 }
 
 export {};

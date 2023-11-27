@@ -89,17 +89,13 @@ export default async function deploy() {
 function contractConfig<CName extends ContractName>({
   abi,
   artifact,
-  address,
 }: Omit<ContractConfig<TypeContractNameAbi[CName]>, "bytecode">) {
   let contract_config = `
 const abi = ${JSON.stringify(abi)} as const satisfies ContractAbi;
 
 export type Abi = typeof abi;
 
-const config: ContractConfig<Abi> = {`;
-  if (typeof address !== "undefined")
-    contract_config += `
-  address: "${address}", // Keep this on top since the others can get long`;
+const config: ContractConfigSync<Abi> = {`;
   contract_config += `
   artifact: "${artifact}",
   abi,`;
@@ -111,7 +107,7 @@ export default config;
   return contract_config;
 }
 
-async function writeArtifact(contract_name: ContractName, contract_config: Omit<ContractConfig<any>, "bytecode">) {
+async function writeArtifact(contract_name: ContractName, contract_config: ContractConfigSync<any>) {
   const contract_config_str = contractConfig(contract_config);
   const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
   await fs.writeFile(contract_config_path, contract_config_str);
@@ -130,10 +126,7 @@ async function syncArtifact<CName extends ContractName, CConfig extends Contract
     ContractConfig<TypeContractNameAbi[CName]>,
     "abi" | "bytecode"
   >;
-  await Promise.all([
-    writeArtifact(contract_name, { abi, address, artifact }),
-    syncConfig(contract_name, abi, bytecode),
-  ]);
+  await Promise.all([writeArtifact(contract_name, { abi, artifact }), syncConfig(contract_name, abi, bytecode)]);
   colorInfo("Synced", `${contract_name} artifact`, ConsoleColor.FgGreen);
 }
 
@@ -141,7 +134,8 @@ function assignContract(contract_name: ContractName, address: HexStr, abi: ether
   contracts[contract_name] = new ethers.Contract(address, abi, provider);
 }
 function findContract<T extends ContractName>(contract_name: T) {
-  const { abi, address } = obj_contract_name_config[contract_name];
+  const { abi } = obj_contract_name_config[contract_name];
+  const address = config.Contracts[contract_name];
   if (!address) return;
 
   const abi_interface = new ethers.Interface(abi);

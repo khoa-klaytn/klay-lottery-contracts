@@ -8,11 +8,24 @@ const wallets: Record<WalletName, HexStr> = {
   carol: "0x",
 };
 
+/**
+ * If filled in, the contract address will be used
+ * else, a new contract will be deployed
+ */
+const Contracts: Partial<Record<Exclude<ContractName, "Prepayment" | "Treasury">, HexStr>> = {
+  SSLottery: "0x",
+  RoleControl: "0x",
+  ContractControl: "0x",
+  VRFConsumer: "0x",
+  DataFeedConsumer: "0x",
+};
+
 const config = {
   wallets,
   args: {
     "Prepayment.accId": 0n,
   },
+  Contracts,
 };
 
 export default config;
