@@ -120,7 +120,7 @@ async function syncConfig(contract_name: string, abi: ContractAbi, bytecode: str
 
 async function syncArtifact<CName extends ContractName, CConfig extends ContractConfig<TypeContractNameAbi[CName]>>(
   contract_name: CName,
-  { artifact, address }: Omit<CConfig, "abi" | "bytecode">
+  { artifact }: Omit<CConfig, "abi" | "bytecode">
 ) {
   const { abi, bytecode } = (await import(artifact, { assert: { type: "json" } })).default as Pick<
     ContractConfig<TypeContractNameAbi[CName]>,
@@ -135,7 +135,7 @@ function assignContract(contract_name: ContractName, address: HexStr, abi: ether
 }
 function findContract<T extends ContractName>(contract_name: T) {
   const { abi } = obj_contract_name_config[contract_name];
-  const address = config.Contracts[contract_name];
+  const address = config.Addresses[contract_name];
   if (!address) return;
 
   const abi_interface = new ethers.Interface(abi);
