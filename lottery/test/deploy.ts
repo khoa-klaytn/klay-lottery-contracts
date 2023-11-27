@@ -4,6 +4,7 @@ import obj_contract_name_config, { TypeContractNameAbi } from "../config/contrac
 import { contracts, provider, startLottery_config, wallets } from "../globals";
 import { ConsoleColor, Enum, colorInfo, grayLog, readContract, sendFn } from "../helpers";
 import path from "path";
+import config from "../config";
 
 // ----- //
 // Setup //
@@ -22,7 +23,7 @@ export default async function deploy() {
   await Promise.all(artifact_promise_arr);
 
   // External contracts
-  findContract("Prepayment");
+  const prepayment_address = findContract("Prepayment");
 
   // Chain stuff
   let role_control_address = findContract("RoleControl");
@@ -54,24 +55,19 @@ export default async function deploy() {
     vrf_consumer_address = await deployContract("VRFConsumer", [
       role_control_address,
       contract_control_address,
-      obj_contract_name_config.VRFConsumer.args._coordinatorAddress,
-      obj_contract_name_config.VRFConsumer.args._keyHash,
-      obj_contract_name_config.VRFConsumer.args._callbackGasLimit,
-      obj_contract_name_config.VRFConsumer.args._prepaymentAddress,
-      obj_contract_name_config.Prepayment.args.accId,
+      config.args["VRFConsumer._coordinatorAddress"],
+      config.args["VRFConsumer._keyHash"],
+      config.args["VRFConsumer._callbackGasLimit"],
+      prepayment_address,
+      config.args["Prepayment.accId"],
     ]);
-  await sendFn([
-    "owner",
-    "Prepayment",
-    "addConsumer",
-    [obj_contract_name_config.Prepayment.args.accId, vrf_consumer_address],
-  ]);
+  await sendFn(["owner", "Prepayment", "addConsumer", [config.args["Prepayment.accId"], vrf_consumer_address]]);
   let dfc_address = findContract("DataFeedConsumer");
   if (!dfc_address)
     dfc_address = await deployContract("DataFeedConsumer", [
       role_control_address,
       contract_control_address,
-      obj_contract_name_config.DataFeedConsumer.args._aggregatorProxyAddress,
+      config.args["DataFeedConsumer._aggregatorProxyAddress"],
     ]);
 
   const base_usd = Number(await readContract("querier", "DataFeedConsumer", "queryBaseUsd"));

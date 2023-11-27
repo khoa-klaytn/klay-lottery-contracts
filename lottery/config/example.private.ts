@@ -10,6 +10,9 @@ const wallets: Record<WalletName, HexStr> = {
 
 const config = {
   wallets,
+  args: {
+    "Prepayment.accId": 0n,
+  },
 };
 
 export default config;

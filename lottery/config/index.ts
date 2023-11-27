@@ -8,10 +8,18 @@ const config =
     ? {
         ...mainnet_public_config,
         ...mainnet_private_config,
+        args: {
+          ...mainnet_public_config.args,
+          ...mainnet_private_config.args,
+        },
       }
     : {
         ...testnet_public_config,
         ...testnet_private_config,
+        args: {
+          ...testnet_public_config.args,
+          ...testnet_private_config.args,
+        },
       };
 
 export default config;

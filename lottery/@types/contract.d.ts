@@ -21,7 +21,6 @@ declare global {
       : never;
   };
   type ContractConfig<T extends ContractAbi> = {
-    args?: InputsRecord<T[0]["inputs"][number]>;
     artifact: string;
     abi: T;
   } & ( // Either address or bytecode must be defined
