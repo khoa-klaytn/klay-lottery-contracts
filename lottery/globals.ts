@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import obj_wallet_name_config from "./config/wallets";
+import config from "./config";
 
 const providerUrl = "https://public-en-baobab.klaytn.net/";
 require("@openzeppelin/test-helpers/configure")({
@@ -9,8 +9,8 @@ require("@openzeppelin/test-helpers/configure")({
 export const provider = new ethers.JsonRpcProvider(providerUrl);
 
 export const wallets: Record<WalletName, ethers.Wallet> = {} as any;
-Object.entries(obj_wallet_name_config).forEach(([wallet_name, config]) => {
-  wallets[wallet_name] = new ethers.Wallet(config.privateKey, provider);
+Object.entries(config.Wallets).forEach(([wallet_name, wallet_key]) => {
+  wallets[wallet_name] = new ethers.Wallet(wallet_key, provider);
 });
 
 export const contracts: Record<ContractName, ethers.Contract> = {} as any;

@@ -7,9 +7,9 @@
   "private": true,
   "scripts": {
     "compile": "hardhat compile",
-    "deploy:testnet": "hardhat run --network testnet scripts/deploy.ts",
-    "deploy:mainnet": "hardhat run --network mainnet scripts/deploy.ts",
-    "test": "hardhat test --network testnet",
+    "deploy:testnet": "HARDHAT_NETWORK=testnet hardhat run scripts/deploy.ts",
+    "deploy:mainnet": "HARDHAT_NETWORK=mainnet hardhat run scripts/deploy.ts",
+    "test": "HARDHAT_NETWORK=testnet hardhat test",
     "test:coverage": "hardhat coverage",
     "test:size-contracts": "hardhat size-contracts"
   },

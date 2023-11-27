@@ -1,3 +1,4 @@
+import "dotenv/config";
 import type { HardhatUserConfig } from "hardhat/types";
 import "@nomicfoundation/hardhat-ethers";
 import "hardhat-abi-exporter";
@@ -19,12 +20,12 @@ const config: HardhatUserConfig = {
     testnet: {
       url: testnet_public_config.Url,
       chainId: testnet_public_config.ChainId,
-      accounts: [testnet_private_config.WalletKey],
+      accounts: [testnet_private_config.Wallets.owner],
     },
     mainnet: {
       url: mainnet_public_config.Url,
       chainId: mainnet_public_config.ChainId,
-      accounts: [mainnet_private_config.WalletKey],
+      accounts: [mainnet_private_config.Wallets.owner],
     },
   },
   solidity: {

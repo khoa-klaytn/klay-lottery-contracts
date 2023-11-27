@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import fs from "fs/promises";
 import obj_contract_name_config, { TypeContractNameAbi } from "../config/contracts";
 import { contracts, provider, startLottery_config, wallets } from "../globals";
-import { ConsoleColor, Enum, catchCustomErr, colorInfo, grayLog, readContract, sendFn } from "../helpers";
+import { ConsoleColor, Enum, colorInfo, grayLog, readContract, sendFn } from "../helpers";
 import path from "path";
 
 // ----- //
