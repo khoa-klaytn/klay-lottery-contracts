@@ -9,6 +9,7 @@
     "compile": "hardhat compile",
     "deploy:testnet": "HARDHAT_NETWORK=testnet hardhat run scripts/deploy.ts",
     "deploy:mainnet": "HARDHAT_NETWORK=mainnet hardhat run scripts/deploy.ts",
+    "sync": "hardhat run scripts/sync.ts",
     "test": "HARDHAT_NETWORK=testnet hardhat test",
     "test:coverage": "hardhat coverage",
     "test:size-contracts": "hardhat size-contracts"

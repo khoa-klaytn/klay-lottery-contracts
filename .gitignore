@@ -28,7 +28,9 @@ yarn-error.log*
 # artifacts/cache/data
 artifacts
 cache
-data/abi
+
+lottery/abis/*
+!lottery/abis/index.ts
 
 coverage.json
 

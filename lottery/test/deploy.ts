@@ -1,10 +1,10 @@
 import { ethers } from "ethers";
-import fs from "fs/promises";
-import obj_contract_name_config, { TypeContractNameAbi } from "../config/contracts";
+import obj_contract_name_artifact from "../sync/artifacts";
 import { contracts, provider, startLottery_config, wallets } from "../globals";
-import { ConsoleColor, Enum, colorInfo, grayLog, readContract, sendFn } from "../helpers";
-import path from "path";
+import { Enum, grayLog, readContract, sendFn } from "../helpers";
 import config from "../config";
+import type TypeContractNameAbi from "../abis";
+import { sync } from "../sync";
 
 // ----- //
 // Setup //
@@ -14,14 +14,6 @@ const RoleName = Enum("Owner", "Operator", "Injector", "Querier");
 const ContractName = Enum("Treasury", "DataFeedConsumer", "VRFConsumer", "SSLottery");
 
 export default async function deploy() {
-  // Sync artifacts
-  const artifact_promise_arr = Object.entries(obj_contract_name_config).map(
-    async ([contract_name, { abi: _abi, ...config }]) => {
-      await syncArtifact(contract_name as ContractName, config);
-    }
-  );
-  await Promise.all(artifact_promise_arr);
-
   // External contracts
   const prepayment_address = findContract("Prepayment");
 
@@ -37,12 +29,8 @@ export default async function deploy() {
   }
 
   let contract_control_address = findContract("ContractControl");
-  try {
-    if (!contract_control_address)
-      contract_control_address = await deployContract("ContractControl", [role_control_address]);
-  } catch (err) {
-    throw err;
-  }
+  if (!contract_control_address)
+    contract_control_address = await deployContract("ContractControl", [role_control_address]);
 
   let klay_lottery_address = findContract("SSLottery");
   let treasury_address = findContract("Treasury");
@@ -80,61 +68,19 @@ export default async function deploy() {
       contract_control_address,
       minTicketPriceInUsd,
     ]);
+
+  await sync();
 }
 
 // ------- //
 // Helpers //
 // ------- //
 
-function contractConfig<CName extends ContractName>({
-  abi,
-  artifact,
-}: Omit<ContractConfig<TypeContractNameAbi[CName]>, "bytecode">) {
-  let contract_config = `
-const abi = ${JSON.stringify(abi)} as const satisfies ContractAbi;
-
-export type Abi = typeof abi;
-
-const config: ContractConfigSync<Abi> = {`;
-  contract_config += `
-  artifact: "${artifact}",
-  abi,`;
-  contract_config += `
-};
-
-export default config;
-`;
-  return contract_config;
-}
-
-async function writeArtifact(contract_name: ContractName, contract_config: ContractConfigSync<any>) {
-  const contract_config_str = contractConfig(contract_config);
-  const contract_config_path = path.resolve(__dirname, `../config/contracts/${contract_name}.ts`);
-  await fs.writeFile(contract_config_path, contract_config_str);
-}
-
-async function syncConfig(contract_name: string, abi: ContractAbi, bytecode: string) {
-  obj_contract_name_config[contract_name]["abi"] = abi;
-  obj_contract_name_config[contract_name]["bytecode"] = bytecode;
-}
-
-async function syncArtifact<CName extends ContractName, CConfig extends ContractConfig<TypeContractNameAbi[CName]>>(
-  contract_name: CName,
-  { artifact }: Omit<CConfig, "abi" | "bytecode">
-) {
-  const { abi, bytecode } = (await import(artifact, { assert: { type: "json" } })).default as Pick<
-    ContractConfig<TypeContractNameAbi[CName]>,
-    "abi" | "bytecode"
-  >;
-  await Promise.all([writeArtifact(contract_name, { abi, artifact }), syncConfig(contract_name, abi, bytecode)]);
-  colorInfo("Synced", `${contract_name} artifact`, ConsoleColor.FgGreen);
-}
-
 function assignContract(contract_name: ContractName, address: HexStr, abi: ethers.Interface) {
   contracts[contract_name] = new ethers.Contract(address, abi, provider);
 }
 function findContract<T extends ContractName>(contract_name: T) {
-  const { abi } = obj_contract_name_config[contract_name];
+  const { abi } = obj_contract_name_artifact[contract_name];
   const address = config.Addresses[contract_name];
   if (!address) return;
 
@@ -144,7 +90,9 @@ function findContract<T extends ContractName>(contract_name: T) {
   return address;
 }
 async function deployContract<T extends ContractName>(contract_name: T, args: any[]) {
-  const { abi, bytecode } = obj_contract_name_config[contract_name] as ContractConfig<TypeContractNameAbi[T]>;
+  const { abi, bytecode } = obj_contract_name_artifact[contract_name] as unknown as ContractConfig<
+    TypeContractNameAbi[T]
+  >;
   const abi_interface = new ethers.Interface(abi);
   const Contract = new ethers.ContractFactory(abi_interface, bytecode, wallets.owner);
   const contract = await Contract.deploy(...args);
