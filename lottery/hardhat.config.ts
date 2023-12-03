@@ -8,7 +8,6 @@ import mainnet_private_config from "./config/mainnet.private";
 import mainnet_public_config from "./config/mainnet.public";
 import testnet_private_config from "./config/testnet.private";
 import testnet_public_config from "./config/testnet.public";
-import deploy from "./test/deploy";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -50,7 +49,10 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     rootHooks: {
-      beforeAll: deploy,
+      beforeAll: async () => {
+        const deploy = await require("./test/deploy");
+        await deploy();
+      },
     },
     grep: process.env.GREP,
     timeout: 100000,
