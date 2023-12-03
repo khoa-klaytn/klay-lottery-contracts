@@ -70,7 +70,7 @@ function syncAbi({
   }
 }
 
-export async function sync() {
+export default async function sync() {
   const promises = [];
   for (const contract_name in obj_contract_name_artifact) {
     // Ignore inherited properties

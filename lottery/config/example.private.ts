@@ -1,4 +1,4 @@
-const wallets: Record<WalletName, HexStr> = {
+const Wallets: Record<WalletName, HexStr> = {
   owner: "0x",
   operator: "0x",
   injector: "0x",
@@ -8,24 +8,21 @@ const wallets: Record<WalletName, HexStr> = {
   carol: "0x",
 };
 
-/**
- * If filled in, the contract address will be used
- * else, a new contract will be deployed
- */
-const Contracts: Partial<Record<Exclude<ContractName, "Prepayment" | "Treasury">, HexStr>> = {
-  SSLottery: "0x",
-  RoleControl: "0x",
+const addresses: PrivateAddresses = {
   ContractControl: "0x",
-  VRFConsumer: "0x",
   DataFeedConsumer: "0x",
+  RoleControl: "0x",
+  SSLottery: "0x",
+  VRFConsumer: "0x",
+  replace: true,
 };
 
 const config = {
-  wallets,
+  Wallets,
   args: {
     "Prepayment.accId": 0n,
   },
-  Contracts,
+  addresses,
 };
 
 export default config;

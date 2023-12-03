@@ -12,10 +12,6 @@ const config =
           ...mainnet_public_config.args,
           ...mainnet_private_config.args,
         },
-        Addresses: {
-          ...mainnet_public_config.Addresses,
-          ...mainnet_private_config.Addresses,
-        },
       }
     : {
         ...testnet_public_config,
@@ -24,10 +20,14 @@ const config =
           ...testnet_public_config.args,
           ...testnet_private_config.args,
         },
-        Addresses: {
-          ...testnet_public_config.Addresses,
-          ...testnet_private_config.Addresses,
-        },
       };
 
 export default config;
+
+export function getAddress(contract_name: PrivateContractName): { address: HexStr; replace: boolean } {
+  const address = config.addresses[contract_name];
+  if (typeof address === "string") return { address, replace: true };
+  if ("replace" in address && typeof address.replace === "boolean")
+    return { address: address.address, replace: address.replace };
+  return { address: address.address, replace: true };
+}

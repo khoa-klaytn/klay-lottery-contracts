@@ -2,9 +2,9 @@ import { ethers } from "ethers";
 import obj_contract_name_artifact from "../sync/artifacts";
 import { contracts, provider, startLottery_config, wallets } from "../globals";
 import { Enum, grayLog, readContract, sendFn } from "../helpers";
-import config from "../config";
+import config, { getAddress } from "../config";
 import type TypeContractNameAbi from "../abis";
-import { sync } from "../sync";
+import sync from "../sync";
 
 // ----- //
 // Setup //
@@ -81,8 +81,17 @@ function assignContract(contract_name: ContractName, address: HexStr, abi: ether
 }
 function findContract<T extends ContractName>(contract_name: T) {
   const { abi } = obj_contract_name_artifact[contract_name];
-  const address = config.Addresses[contract_name];
-  if (!address) return;
+  let address: HexStr;
+  switch (contract_name) {
+    case "Prepayment":
+    case "Treasury":
+      address = config.args[`${contract_name as PublicContractName}.address`];
+      break;
+    default:
+      const private_address = getAddress(contract_name as PrivateContractName);
+      if (private_address.replace) return;
+      address = private_address.address;
+  }
 
   const abi_interface = new ethers.Interface(abi);
   assignContract(contract_name, address, abi_interface);
