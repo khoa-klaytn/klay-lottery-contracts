@@ -26,8 +26,9 @@ export default config;
 
 export function getAddress(contract_name: PrivateContractName): { address: HexStr; replace: boolean } {
   const address = config.addresses[contract_name];
-  if (typeof address === "string") return { address, replace: true };
+  const global_replace = config.addresses.replace ?? true;
+  if (typeof address === "string") return { address, replace: global_replace };
   if ("replace" in address && typeof address.replace === "boolean")
     return { address: address.address, replace: address.replace };
-  return { address: address.address, replace: true };
+  return { address: address.address, replace: global_replace };
 }
