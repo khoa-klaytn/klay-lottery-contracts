@@ -39,16 +39,14 @@ async function syncContract({
   const path = join(dir, `${contract_name}.ts`);
   await syncTs({ abi_stringified, contract_name, path });
 }
-function syncAbi({
+function* syncAbi({
   abi_stringified,
   contract_name,
   obj_part_dependent_arr,
-  promises,
 }: {
   abi_stringified: string;
   contract_name: ContractName;
   obj_part_dependent_arr: ObjPartDependentArr;
-  promises: Promise<void>[];
 }) {
   if ("abi" in obj_part_dependent_arr) {
     const dependent_arr = obj_part_dependent_arr.abi;
@@ -57,10 +55,10 @@ function syncAbi({
       const ext = dependent_path.match(/\.(\w+)$/)?.[1];
       switch (ext) {
         case "json":
-          promises.push(syncJson({ abi_stringified, path: dependent_path }));
+          yield syncJson({ abi_stringified, path: dependent_path });
           continue;
         case "ts":
-          promises.push(syncTs({ abi_stringified, contract_name, path: dependent_path }));
+          yield syncTs({ abi_stringified, contract_name, path: dependent_path });
           continue;
         default:
           console.error(`Unknown extension: ${ext}`);
@@ -71,7 +69,7 @@ function syncAbi({
 }
 
 export default async function sync() {
-  const promises = [];
+  const promises: Promise<unknown>[] = [];
   for (const contract_name in obj_contract_name_artifact) {
     // Ignore inherited properties
     if (!Object.hasOwn(obj_contract_name_artifact, contract_name)) continue;
@@ -83,7 +81,14 @@ export default async function sync() {
     if (!(contract_name in obj_contract_name_obj_part_dependent_arr)) continue;
     const obj_part_dependent_arr = obj_contract_name_obj_part_dependent_arr[contract_name as ContractName];
 
-    syncAbi({ abi_stringified, contract_name: contract_name as ContractName, obj_part_dependent_arr, promises });
+    const syncAbi_gen = syncAbi({
+      abi_stringified,
+      contract_name: contract_name as ContractName,
+      obj_part_dependent_arr,
+    });
+    for (const promise of syncAbi_gen) {
+      promises.push(promise);
+    }
   }
   return Promise.all(promises);
 }
