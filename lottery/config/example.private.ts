@@ -8,21 +8,15 @@ const Wallets: Record<WalletName, HexStr> = {
   carol: "0x",
 };
 
-const addresses: PrivateAddresses = {
-  ContractControl: "0x",
-  DataFeedConsumer: "0x",
-  RoleControl: "0x",
-  SSLottery: "0x",
-  VRFConsumer: "0x",
-  replace: true,
-};
+// prettier-ignore
+const obj_contract_name_part_obj: ObjContractNamePartObj = {ContractControl:{address:"0x",startBlock:0,redeploy:true,},DataFeedConsumer:{address:"0x",startBlock:0,redeploy:true,},RoleControl:{address:"0x",startBlock:0,redeploy:true,},SSLottery:{address:"0x",startBlock:0,redeploy:true,},VRFConsumer:{address:"0x",startBlock:0,redeploy:true,},};
 
 const config = {
   Wallets,
   args: {
     "Prepayment.accId": 0n,
   },
-  addresses,
+  obj_contract_name_part_obj,
 };
 
 export default config;

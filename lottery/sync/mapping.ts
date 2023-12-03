@@ -1,12 +1,13 @@
-const PATTERN_ADDRESS = "(0x[0-9a-fA-F]{40})";
-const PATTERN_STARTBLOCK = "(\\d+)";
+import { WrappedPattern } from "../helpers";
 
-type TuplePathPattern = [string, string];
+const PATTERN_ADDRESS = "0x[0-9a-fA-F]{40}";
+const PATTERN_STARTBLOCK = "\\d+";
+
+export type TuplePathPattern = [string, string];
+export type TuplePathPatternKey = "address" | "startBlock";
 export type ObjPartDependentArr = {
   abi?: string[];
-  address?: TuplePathPattern[];
-  startBlock?: TuplePathPattern[];
-};
+} & Partial<Record<TuplePathPatternKey, TuplePathPattern[]>>;
 type ObjContractNameObjPartDependentArr = {
   [contract_name in ContractName]?: ObjPartDependentArr;
 };
@@ -24,14 +25,22 @@ const obj_contract_name_obj_part_dependent_arr: ObjContractNameObjPartDependentA
     address: [
       [
         "frontend/apps/web/src/config/constants/contracts.ts",
-        `\\s+\\[ChainId\\.KLAYTN_TESTNET\\]: '${PATTERN_ADDRESS}',`,
+        WrappedPattern({ pattern: PATTERN_ADDRESS, before: "\\s+\\[ChainId\\.KLAYTN_TESTNET\\]: '" }),
       ],
-      ["server/env/development.env", `LOTTERY_ADDRESS=${PATTERN_ADDRESS}`],
-      ["server/env/production.env", `LOTTERY_ADDRESS=${PATTERN_ADDRESS}`],
-      ["server/env/test.env", `LOTTERY_ADDRESS=${PATTERN_ADDRESS}`],
-      ["subgraph/subgraphs/lottery/subgraph.yaml", `\\s+address: '${PATTERN_ADDRESS}'`],
+      ["server/env/development.env", WrappedPattern({ pattern: PATTERN_ADDRESS, before: "LOTTERY_ADDRESS=" })],
+      ["server/env/production.env", WrappedPattern({ pattern: PATTERN_ADDRESS, before: "LOTTERY_ADDRESS=" })],
+      ["server/env/test.env", WrappedPattern({ pattern: PATTERN_ADDRESS, before: "LOTTERY_ADDRESS=" })],
+      [
+        "subgraph/subgraphs/lottery/subgraph.yaml",
+        WrappedPattern({ pattern: PATTERN_ADDRESS, before: "\\s+address: '" }),
+      ],
     ],
-    startBlock: [["subgraph/subgraphs/lottery/subgraph.yaml", `\\s+startBlock: ${PATTERN_STARTBLOCK}`]],
+    startBlock: [
+      [
+        "subgraph/subgraphs/lottery/subgraph.yaml",
+        WrappedPattern({ pattern: PATTERN_STARTBLOCK, before: "\\s+startBlock: " }),
+      ],
+    ],
   },
 };
 

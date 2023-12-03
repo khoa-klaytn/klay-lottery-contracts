@@ -38,17 +38,14 @@ declare global {
 
   type PublicContractName = "Prepayment" | "Treasury";
   type PrivateContractName = Exclude<ContractName, PublicContractName>;
-  type ToReplace = {
-    /**
-     * If true, address will be replaced with the deployed address.
-     * If false, address will be used as-is.
-     * @default true
-     */
-    replace?: boolean;
+  type PartObj = {
+    address: HexStr;
+    startBlock: number;
+    redeploy: boolean;
   };
-  type PrivateAddresses = {
-    [K in PrivateContractName]: HexStr | ({ address: HexStr } & ToReplace);
-  } & ToReplace;
+  type ObjContractNamePartObj = {
+    [K in PrivateContractName]: PartObj;
+  };
 }
 
 export {};

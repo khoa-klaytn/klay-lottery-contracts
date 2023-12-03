@@ -84,7 +84,7 @@ export function batchReadContract<Calls extends [string, any?][]>(
  * @param _response Response to wait for
  * @returns (replaced) response & receipt
  */
-async function waitResponse(_response: ethers.TransactionResponse) {
+export async function waitResponse(_response: ethers.TransactionResponse) {
   let response = _response;
   let receipt: ethers.TransactionReceipt;
   try {
@@ -194,4 +194,20 @@ export function depositPrepayment(fee: bigint) {
   return sendFn(["owner", "Prepayment", "deposit", [config.args["Prepayment.accId"]], { value: fee }]).catch(
     catchCustomErr("Prepayment")
   );
+}
+
+export function WrappedPattern({
+  pattern,
+  before,
+  after,
+}: {
+  pattern: string;
+  before?: string;
+  after?: string;
+}): string {
+  let wrapped_pattern = "";
+  if (before) wrapped_pattern += `(?<=^${before})`;
+  wrapped_pattern += pattern;
+  if (after) wrapped_pattern += `(?=${after}$)`;
+  return wrapped_pattern;
 }
