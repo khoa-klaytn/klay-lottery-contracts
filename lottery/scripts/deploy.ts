@@ -1,3 +1,7 @@
+import sync from "../sync";
 import deploy from "../test/deploy";
 
-deploy();
+(async () => {
+  await deploy();
+  await sync();
+})();

@@ -3,7 +3,6 @@ import obj_contract_name_artifact from "../sync/artifacts";
 import { contracts, provider, startLottery_config, wallets } from "../globals";
 import { Enum, grayLog, readContract, sendFn, waitResponse } from "../helpers";
 import config from "../config";
-import sync from "../sync";
 
 // ----- //
 // Setup //
@@ -56,8 +55,6 @@ export default async function deploy() {
   const minTicketPriceInUsd = BigInt(Math.round(0.005 * base_usd));
   startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.1 * base_usd));
   await maybeDeployContract("SSLottery", [role_control_address, contract_control_address, minTicketPriceInUsd]);
-
-  await sync();
 }
 
 // ------- //
