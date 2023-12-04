@@ -3,28 +3,28 @@ pragma solidity ^0.8.16;
 
 import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
-import {ContractControlConsumer} from "../ContractControl/Consumer.sol";
-import {ContractName} from "../ContractControl/enum.sol";
-import {RoleControlConsumer} from "../RoleControl/Consumer.sol";
-import {RoleName} from "../RoleControl/enum.sol";
-import {IVRFConsumer} from "../interfaces/IVRFConsumer.sol";
-import {ICoordinator} from "../interfaces/ICoordinator.sol";
-import {ISSLottery} from "../SSLottery/interfaces.sol";
+import {ContractControlConsumer} from "./ContractControl/Consumer.sol";
+import {ContractName} from "./ContractControl/enum.sol";
+import {RoleControlConsumer} from "./RoleControl/Consumer.sol";
+import {RoleName} from "./RoleControl/enum.sol";
+import {IVRFConsumer} from "./interfaces/IVRFConsumer.sol";
+import {ICoordinator} from "./interfaces/ICoordinator.sol";
+import {ISSLottery} from "./SSLottery/interfaces.sol";
 
 error WithdrawFailed();
 
 contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, RoleControlConsumer {
     ICoordinator internal coordinator;
     IPrepayment internal prepayment;
-    uint64 internal prepaymentAccId;
+    uint64 public prepaymentAccId;
     address internal ssLotteryAddress;
     ISSLottery internal ssLottery;
 
     uint256 public latestLotteryId;
     uint32 public randomResult;
-    bytes32 internal keyHash;
-    uint32 internal callbackGasLimit;
-    uint256 internal latestRequestId;
+    bytes32 public keyHash;
+    uint32 public callbackGasLimit;
+    uint256 public latestRequestId;
 
     constructor(
         address _roleControlAddress,
@@ -48,7 +48,6 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
     }
 
     function addRoleDependencies() internal override {
-        addRoleDependency(RoleName.Querier);
         addRoleDependency(RoleName.Owner);
     }
 
@@ -99,22 +98,6 @@ contract VRFConsumer is VRFConsumerBase, IVRFConsumer, ContractControlConsumer, 
      */
     function requestRandomNumber() external override onlyControlContract(ContractName.SSLottery) {
         latestRequestId = coordinator.requestRandomWords(keyHash, prepaymentAccId, callbackGasLimit, 1);
-    }
-
-    // ----------------- //
-    // Querier functions //
-    // ----------------- //
-
-    function queryKeyHash() external view onlyRole(RoleName.Querier) returns (bytes32) {
-        return keyHash;
-    }
-
-    function queryCallbackGasLimit() external view onlyRole(RoleName.Querier) returns (uint32) {
-        return callbackGasLimit;
-    }
-
-    function queryLatestLotteryId() external view onlyRole(RoleName.Querier) returns (uint256) {
-        return latestLotteryId;
     }
 
     // --------------------- //

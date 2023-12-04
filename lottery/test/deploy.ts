@@ -8,7 +8,7 @@ import config from "../config";
 // Setup //
 // ----- //
 
-const RoleName = Enum("Owner", "Operator", "Injector", "Querier");
+const RoleName = Enum("Owner", "Operator", "Injector");
 const ContractName = Enum("Treasury", "DataFeedConsumer", "VRFConsumer", "SSLottery");
 
 export default async function deploy() {
@@ -23,9 +23,7 @@ export default async function deploy() {
   if (role_control_redeployed) {
     await sendFn(["owner", "RoleControl", "addMember", [RoleName.Operator, wallets.operator.address]]);
     await sendFn(["owner", "RoleControl", "addMember", [RoleName.Injector, wallets.injector.address]]);
-    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Querier, wallets.querier.address]]);
     await sendFn(["owner", "RoleControl", "addMember", [RoleName.Operator, wallets.server.address]]);
-    await sendFn(["owner", "RoleControl", "addMember", [RoleName.Querier, wallets.server.address]]);
   }
   const role_control_address = config.obj_contract_name_part_obj.RoleControl.address;
 
@@ -51,7 +49,7 @@ export default async function deploy() {
     config.args["DataFeedConsumer._aggregatorProxyAddress"],
   ]);
 
-  const base_usd = Number(await readContract("querier", "DataFeedConsumer", "queryBaseUsd"));
+  const base_usd = Number(await readContract("owner", "DataFeedConsumer", "BASE_USD"));
   const minTicketPriceInUsd = BigInt(Math.round(0.005 * base_usd));
   startLottery_config.ticketPriceInUsd = BigInt(Math.round(0.1 * base_usd));
   await maybeDeployContract("SSLottery", [role_control_address, contract_control_address, minTicketPriceInUsd]);

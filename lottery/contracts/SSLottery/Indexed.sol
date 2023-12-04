@@ -144,7 +144,6 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         addRoleDependency(RoleName.Owner);
         addRoleDependency(RoleName.Operator);
         addRoleDependency(RoleName.Injector);
-        addRoleDependency(RoleName.Querier);
     }
 
     function addContractDependencies() internal override {

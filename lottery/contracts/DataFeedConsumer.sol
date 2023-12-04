@@ -2,27 +2,23 @@
 pragma solidity ^0.8.16;
 
 import {IAggregator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IAggregator.sol";
-import {ContractControlConsumer} from "../ContractControl/Consumer.sol";
-import {ContractName} from "../ContractControl/enum.sol";
-import {RoleControlConsumer} from "../RoleControl/Consumer.sol";
-import {RoleName} from "../RoleControl/enum.sol";
-import {IDataFeedConsumer} from "../interfaces/IDataFeedConsumer.sol";
+import {ContractControlConsumer} from "./ContractControl/Consumer.sol";
+import {ContractName} from "./ContractControl/enum.sol";
+import {RoleControlConsumer} from "./RoleControl/Consumer.sol";
+import {RoleName} from "./RoleControl/enum.sol";
+import {IDataFeedConsumer} from "./interfaces/IDataFeedConsumer.sol";
 
 error AnswerNonPositive();
 
 contract DataFeedConsumer is IDataFeedConsumer, ContractControlConsumer, RoleControlConsumer {
     IAggregator internal dataFeed;
     address internal ssLotteryAddress;
-    uint8 internal constant DECIMALS_CRYPTO = 18;
-    uint8 internal immutable DECIMALS_USD;
-    uint256 internal immutable BASE_CRYPTO = 10 ** DECIMALS_CRYPTO;
-    uint256 internal immutable BASE_USD;
+    uint8 public constant DECIMALS_CRYPTO = 18;
+    uint8 public immutable DECIMALS_USD;
+    uint256 public immutable BASE_CRYPTO = 10 ** DECIMALS_CRYPTO;
+    uint256 public immutable BASE_USD;
 
-    constructor(
-        address _roleControlAddress,
-        address _contractControlAddress,
-        address _aggregatorProxyAddress
-    )
+    constructor(address _roleControlAddress, address _contractControlAddress, address _aggregatorProxyAddress)
         RoleControlConsumer(_roleControlAddress)
         ContractControlConsumer(_contractControlAddress, ContractName.DataFeedConsumer)
     {
@@ -33,9 +29,7 @@ contract DataFeedConsumer is IDataFeedConsumer, ContractControlConsumer, RoleCon
         BASE_USD = base_usd;
     }
 
-    function addRoleDependencies() internal override {
-        addRoleDependency(RoleName.Querier);
-    }
+    function addRoleDependencies() internal override {}
 
     function addContractDependencies() internal override {
         addContractDependency(ContractName.SSLottery);
@@ -58,58 +52,42 @@ contract DataFeedConsumer is IDataFeedConsumer, ContractControlConsumer, RoleCon
     // SSLottery functions //
     // ------------------- //
 
-    function convertCryptoUsd(
-        uint256 crypto
-    ) external view override onlyControlContract(ContractName.SSLottery) returns (uint256 usd) {
+    function convertCryptoUsd(uint256 crypto)
+        external
+        view
+        override
+        onlyControlContract(ContractName.SSLottery)
+        returns (uint256 usd)
+    {
         return _convertCryptoUsd(crypto);
     }
 
-    function convertUsdCrypto(
-        uint256 usd
-    ) external view override onlyControlContract(ContractName.SSLottery) returns (uint256 crypto) {
+    function convertUsdCrypto(uint256 usd)
+        external
+        view
+        override
+        onlyControlContract(ContractName.SSLottery)
+        returns (uint256 crypto)
+    {
         return _convertUsdCrypto(usd);
-    }
-
-    // ----------------- //
-    // Querier functions //
-    // ----------------- //
-
-    function queryDecimalsCrypto() external view onlyRole(RoleName.Querier) returns (uint8) {
-        return DECIMALS_CRYPTO;
-    }
-
-    function queryDecimalsUsd() external view onlyRole(RoleName.Querier) returns (uint8) {
-        return DECIMALS_USD;
-    }
-
-    function queryBaseCrypto() external view onlyRole(RoleName.Querier) returns (uint256) {
-        return BASE_CRYPTO;
-    }
-
-    function queryBaseUsd() external view onlyRole(RoleName.Querier) returns (uint256) {
-        return BASE_USD;
-    }
-
-    function queryLatestData() external view onlyRole(RoleName.Querier) returns (uint256) {
-        return _getLatestData();
     }
 
     // ------------------ //
     // internal functions //
     // ------------------ //
 
-    function _getLatestData() internal view returns (uint256) {
-        (, int256 answer_, , , ) = dataFeed.latestRoundData();
+    function latestData() internal view returns (uint256) {
+        (, int256 answer_,,,) = dataFeed.latestRoundData();
         requirePositive(answer_);
         return uint256(answer_);
     }
 
     function _convertCryptoUsd(uint256 crypto) internal view returns (uint256 usd) {
-        usd = (crypto * _getLatestData()) / BASE_CRYPTO;
+        usd = (crypto * latestData()) / BASE_CRYPTO;
     }
 
     function _convertUsdCrypto(uint256 usd) internal view returns (uint256 crypto) {
-        crypto = (usd * BASE_CRYPTO) / _getLatestData();
+        crypto = (usd * BASE_CRYPTO) / latestData();
     }
 
     function requirePositive(int256 answer) internal pure {
