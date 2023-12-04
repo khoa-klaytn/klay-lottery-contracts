@@ -4,7 +4,7 @@
 
 A lottery for KLAY tokens built with Orakl's VRF.
 
-## Scripts
+## [Scripts](package.json)
 
 | Script             | Description                                                  |
 |--------------------|--------------------------------------------------------------|
@@ -13,7 +13,7 @@ A lottery for KLAY tokens built with Orakl's VRF.
 | `deploy:<network>` | Deploy contracts on ( mainnet \| testnet )                   |
 | `sync`             | Sync contracts w/ other submodules (Auto-run after `deploy`) |
 
-## Roles
+## [Roles](contracts/RoleControl/enum.sol)
 
 | Role                                   | Permissions                                                                                                     |
 |----------------------------------------|-----------------------------------------------------------------------------------------------------------------|
@@ -25,14 +25,17 @@ A lottery for KLAY tokens built with Orakl's VRF.
 <h3 id="permissions-onlyRootOwner">only Root Owner</h3>
 
 - Add/Remove OwnerMember
-- Change RoleControl, ContractControl, & Prepayment
+- Change [RoleControl][RoleControl], [ContractControl][ContractControl], & Prepayment
 
 ## Contracts
 
-| Contract         | Description                                                        |
-|------------------|--------------------------------------------------------------------|
-| RoleControl      | Manages roles & permissions for all contracts                      |
-| ContractControl  | Manages contract addresses & internal properties for all contracts |
-| SSLottery        | The lottery itself                                                 |
-| VRFConsumer      | Random number generation                                           |
-| DataFeedConsumer | KLAY->USD & vice-versa                                             |
+| Contract                                           | Description                                                        |
+|----------------------------------------------------|--------------------------------------------------------------------|
+| [RoleControl][RoleControl]                         | Manages roles & permissions for all contracts                      |
+| [ContractControl][ContractControl]                 | Manages contract addresses & internal properties for all contracts |
+| [SSLottery](contracts/SSLottery/index.sol)         | The lottery itself                                                 |
+| [VRFConsumer](contracts/VRFConsumer.sol)           | Random number generation                                           |
+| [DataFeedConsumer](contracts/DataFeedConsumer.sol) | KLAY->USD & vice-versa                                             |
+
+[RoleControl]: contracts/RoleControl/index.sol
+[ContractControl]: contracts/ContractControl/index.sol
