@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
   mocha: {
     rootHooks: {
       beforeAll: async () => {
-        const deploy = await require("./test/deploy");
+        const deploy = await require("./test/deploy").default;
         await deploy();
       },
     },
