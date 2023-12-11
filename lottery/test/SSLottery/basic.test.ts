@@ -87,6 +87,10 @@ describe("Basic Flow", () => {
   });
 
   it("Bob claims his tickets", async () => {
-    await claimTickets(lottery_id, "bob", obj_wallet_name_tickets.bob.ids).catch(catchCustomErr("SSLottery"));
+    await claimTickets(
+      "bob",
+      Array(obj_wallet_name_tickets.bob.ids.length).fill(lottery_id),
+      obj_wallet_name_tickets.bob.ids
+    ).catch(catchCustomErr("SSLottery"));
   });
 });

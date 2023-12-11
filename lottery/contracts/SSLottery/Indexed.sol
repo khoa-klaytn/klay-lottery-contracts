@@ -267,37 +267,69 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
     /**
      * @notice Claim a set of winning tickets for a lottery
-     * @param _lotteryId: lottery id
-     * @param _ticketIds: array of ticket ids
+     * @param lotteryIds: array of lottery ids
+     * @param ticketIds: array of ticket ids (should match lotteryIds)
      * @dev Callable by users only, not contract!
      */
-    function claimTickets(uint256 _lotteryId, uint256[] calldata _ticketIds) external notContract nonReentrant {
-        require(_ticketIds.length != 0, "Length must be >0");
-        require(_ticketIds.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
-        requireClaimable(_lotteryId);
+    function claimTickets(uint256[] calldata lotteryIds, uint256[] calldata ticketIds) external notContract nonReentrant {
+        uint256 numTicketIds = ticketIds.length; 
+        require(numTicketIds != 0, "Length must be >0");
+        require(numTicketIds <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
+        require(numTicketIds == lotteryIds.length, "Lengths must match");
 
-        // Initialize reward
+        // Setup
         uint256 reward;
+        uint256 numUniqueLotteryIds = 0;
+        uint256[] memory uniqueLotteryIds = new uint256[](numTicketIds);
+        uint256[] memory lotteryNumTickets = new uint256[](numTicketIds);
 
-        for (uint256 i = 0; i < _ticketIds.length; i++) {
-            uint256 thisTicketId = _ticketIds[i];
+        for (uint256 i = 0; i < numTicketIds; i++) {
+            uint256 lotteryId = lotteryIds[i];
+            uint256 ticketId = ticketIds[i];
 
-            requireValidTicketId(_lotteryId, thisTicketId);
-            requireTicketOwner(thisTicketId);
+            requireValidTicketId(lotteryId, ticketId);
+            requireTicketOwner(ticketId);
 
-            // Update the lottery ticket owner to 0x address
-            _tickets[thisTicketId].owner = address(0);
-
-            uint256 rewardForTicketId = _calculateRewardsForTicketId(_lotteryId, thisTicketId);
-
-            // Increment the reward to transfer
+            // Prepare reward transfer
+            _tickets[ticketId].owner = address(0);
+            uint256 rewardForTicketId = _calculateRewardsForTicketId(lotteryId, ticketId);
             reward += rewardForTicketId;
+
+            // Set unique lotteries
+            bool includes;
+            uint256 index;
+            (includes, index) = uniqueLotteryIdsIncludes(uniqueLotteryIds, lotteryId);
+            if (includes) {
+                uniqueLotteryIds[index] = lotteryId;
+                lotteryNumTickets[index]++;
+            } else {
+                uniqueLotteryIds[numUniqueLotteryIds] = lotteryId;
+                lotteryNumTickets[numUniqueLotteryIds] = 1;
+                numUniqueLotteryIds++;
+            }
+        }
+
+        for (uint256 i = 0; i < numUniqueLotteryIds; i++) {
+            uint256 lotteryId = uniqueLotteryIds[i];
+            requireClaimable(lotteryId);
+            // Emit for indexing
+            emit TicketsClaim(msg.sender, reward, lotteryId, lotteryNumTickets[i]);
         }
 
         // Transfer reward to msg.sender
         send(msg.sender, reward);
+    }
 
-        emit TicketsClaim(msg.sender, reward, _lotteryId, _ticketIds.length);
+    /**
+     * @return (includes, index)
+     */
+    function uniqueLotteryIdsIncludes(uint256[] memory uniqueLotteryIds, uint256 lotteryId) internal pure returns (bool, uint256) {
+        for (uint256 index = 0; index < uniqueLotteryIds.length; index++) {
+            if (uniqueLotteryIds[index] == lotteryId) {
+                return (true, index);
+            }
+        }
+        return (false, 0);
     }
 
     function _closeLottery(uint256 _lotteryId) internal {

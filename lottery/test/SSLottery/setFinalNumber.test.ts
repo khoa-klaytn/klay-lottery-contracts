@@ -120,7 +120,11 @@ describe("setFinalNumber to test winners", () => {
 
   it("Carol cannot claim Bob's tickets", async () => {
     try {
-      await claimTickets(lottery_id, "carol", obj_wallet_name_tickets.bob.ids);
+      await claimTickets(
+        "carol",
+        Array(obj_wallet_name_tickets.bob.ids.length).fill(lottery_id),
+        obj_wallet_name_tickets.bob.ids
+      );
       throw Error("Was supposed to throw");
     } catch (e) {
       expect(e).instanceOf(Error);
@@ -128,12 +132,20 @@ describe("setFinalNumber to test winners", () => {
   });
 
   it("Bob claims his tickets", async () => {
-    await claimTickets(lottery_id, "bob", obj_wallet_name_tickets.bob.ids).catch(catchCustomErr("SSLottery"));
+    await claimTickets(
+      "bob",
+      Array(obj_wallet_name_tickets.bob.ids.length).fill(lottery_id),
+      obj_wallet_name_tickets.bob.ids
+    ).catch(catchCustomErr("SSLottery"));
   });
 
   it("Bob cannot claim claimed tickets", async () => {
     try {
-      await claimTickets(lottery_id, "bob", obj_wallet_name_tickets.bob.ids);
+      await claimTickets(
+        "bob",
+        Array(obj_wallet_name_tickets.bob.ids.length).fill(lottery_id),
+        obj_wallet_name_tickets.bob.ids
+      );
       throw Error("Was supposed to throw");
     } catch (e) {
       expect(e).instanceOf(Error);
@@ -141,6 +153,10 @@ describe("setFinalNumber to test winners", () => {
   });
 
   it("Carol claims her tickets", async () => {
-    await claimTickets(lottery_id, "carol", obj_wallet_name_tickets.carol.ids).catch(catchCustomErr("SSLottery"));
+    await claimTickets(
+      "carol",
+      Array(obj_wallet_name_tickets.carol.ids.length).fill(lottery_id),
+      obj_wallet_name_tickets.carol.ids
+    ).catch(catchCustomErr("SSLottery"));
   });
 });

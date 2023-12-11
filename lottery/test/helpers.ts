@@ -11,9 +11,9 @@ export async function getTicketIds(lottery_id: bigint, wallet_name: WalletName, 
   return ticketIds;
 }
 
-export async function claimTickets(lottery_id: bigint, wallet_name: WalletName, ticketIds: bigint[]) {
+export async function claimTickets(wallet_name: WalletName, lottery_id_arr: bigint[], ticketIds: bigint[]) {
   grayLog(`Ticket IDs: ${ticketIds}`);
-  const claimTicketsTx = await sendFn([wallet_name, "SSLottery", "claimTickets", [lottery_id, ticketIds]]).catch(
+  const claimTicketsTx = await sendFn([wallet_name, "SSLottery", "claimTickets", [lottery_id_arr, ticketIds]]).catch(
     catchCustomErr("SSLottery")
   );
   const claimTicketsReceipt = claimTicketsTx[1];
