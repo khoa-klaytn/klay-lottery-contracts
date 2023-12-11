@@ -221,8 +221,9 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         notContract
         nonReentrant
     {
-        require(_ticketNumbers.length != 0, "No ticket specified");
-        require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
+        uint256 numTicketNumbers = _ticketNumbers.length;
+        require(numTicketNumbers != 0, "No ticket specified");
+        require(numTicketNumbers <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
 
         requireOpen(_lotteryId);
         Lottery memory lottery = _lotteries[_lotteryId];
@@ -232,11 +233,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
         // Calculate cost of tickets
         uint256 amountToTransfer =
-            _calculateTotalPriceForBulkTickets(lottery.discountDivisor, lottery.ticketPrice, _ticketNumbers.length);
+            _calculateTotalPriceForBulkTickets(lottery.discountDivisor, lottery.ticketPrice, numTicketNumbers);
         demand(msg.value, amountToTransfer);
 
         uint8 numBrackets = lottery.numBrackets;
-        for (uint256 i = 0; i < _ticketNumbers.length; i++) {
+        uint256 _currentTicketId = currentTicketId;
+        for (uint256 i = 0; i < numTicketNumbers; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
 
             requireValidTicketNumber(thisTicketNumber, numBrackets);
@@ -251,18 +253,19 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
                 }
             }
 
-            _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(currentTicketId);
+            _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(_currentTicketId);
 
-            _tickets[currentTicketId] = Ticket({number: thisTicketNumber, owner: msg.sender});
+            _tickets[_currentTicketId] = Ticket({number: thisTicketNumber, owner: msg.sender});
 
             // Increase lottery ticket number
-            currentTicketId++;
+            _currentTicketId++;
         }
+        currentTicketId = _currentTicketId;
 
         // Increment the total amount collected for the lottery round
         _lotteries[_lotteryId].amountCollected += amountToTransfer;
 
-        emit TicketsPurchase(msg.sender, _lotteryId, _ticketNumbers.length);
+        emit TicketsPurchase(msg.sender, _lotteryId, numTicketNumbers);
     }
 
     /**
@@ -271,8 +274,12 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      * @param ticketIds: array of ticket ids (should match lotteryIds)
      * @dev Callable by users only, not contract!
      */
-    function claimTickets(uint256[] calldata lotteryIds, uint256[] calldata ticketIds) external notContract nonReentrant {
-        uint256 numTicketIds = ticketIds.length; 
+    function claimTickets(uint256[] calldata lotteryIds, uint256[] calldata ticketIds)
+        external
+        notContract
+        nonReentrant
+    {
+        uint256 numTicketIds = ticketIds.length;
         require(numTicketIds != 0, "Length must be >0");
         require(numTicketIds <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
         require(numTicketIds == lotteryIds.length, "Lengths must match");
@@ -323,7 +330,11 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     /**
      * @return (includes, index)
      */
-    function uniqueLotteryIdsIncludes(uint256[] memory uniqueLotteryIds, uint256 lotteryId) internal pure returns (bool, uint256) {
+    function uniqueLotteryIdsIncludes(uint256[] memory uniqueLotteryIds, uint256 lotteryId)
+        internal
+        pure
+        returns (bool, uint256)
+    {
         for (uint256 index = 0; index < uniqueLotteryIds.length; index++) {
             if (uniqueLotteryIds[index] == lotteryId) {
                 return (true, index);
