@@ -12,6 +12,9 @@ const submodules_dir = resolve(__dirname, "../../..");
 function resolvePath(...paths: string[]) {
   return join(submodules_dir, ...paths);
 }
+const contract_dir = resolvePath("contracts/lottery");
+const contract_abis_dir = join(contract_dir, "abis");
+
 async function syncTs({
   abi_stringified,
   contract_name,
@@ -48,8 +51,20 @@ export async function findNReplace({ path, pattern, replace }: { path: string; p
   colorInfo("Synced", `${path} ${ConsoleColor.FgYellow}/${pattern}/`, ConsoleColor.FgGreen);
 }
 
-const contract_dir = resolvePath("contracts/lottery");
-const contract_abis_dir = join(contract_dir, "abis");
+const obj_contract_name_part_obj_pattern = WrappedPattern({
+  pattern: ".+",
+  before: "const obj_contract_name_part_obj: ObjContractNamePartObj = ",
+});
+export async function syncObjContractNamePartObj() {
+  const path = join(contract_dir, `config/${mainnet ? "mainnet" : "testnet"}.private.ts`);
+  await findNReplace({
+    path,
+    pattern: obj_contract_name_part_obj_pattern,
+    replace: JSON.stringify(config.obj_contract_name_part_obj),
+  });
+  colorInfo("Synced", path, ConsoleColor.FgGreen);
+}
+
 async function syncContractAbi({
   abi_stringified,
   contract_name,
@@ -60,19 +75,6 @@ async function syncContractAbi({
   await mkdir(contract_abis_dir, { recursive: true });
   const path = join(contract_abis_dir, `${contract_name}.ts`);
   await syncTs({ abi_stringified, contract_name, path });
-}
-const obj_contract_name_part_obj_pattern = WrappedPattern({
-  pattern: ".+",
-  before: "const obj_contract_name_part_obj: ObjContractNamePartObj = ",
-});
-async function syncObjContractNamePartObj() {
-  const path = join(contract_dir, `config/${mainnet ? "mainnet" : "testnet"}.private.ts`);
-  await findNReplace({
-    path,
-    pattern: obj_contract_name_part_obj_pattern,
-    replace: JSON.stringify(config.obj_contract_name_part_obj),
-  });
-  colorInfo("Synced", path, ConsoleColor.FgGreen);
 }
 function* syncAbi({
   abi_stringified,
@@ -125,8 +127,6 @@ function* syncTPP({
 
 export default async function sync() {
   const promises: Promise<unknown>[] = [];
-
-  promises.push(syncObjContractNamePartObj());
 
   for (const contract_name in obj_contract_name_artifact) {
     // Ignore inherited properties
