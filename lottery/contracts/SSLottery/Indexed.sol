@@ -33,6 +33,7 @@ error LotteryNotOver(uint256 timestamp, uint256 endTime);
 error LotteryNotClose();
 error FinalNumberNotDrawn();
 
+error TooManyTickets();
 error TicketIdInvalid();
 error TicketNotYours(uint256 ticketId);
 error SendFailed();
@@ -74,6 +75,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         uint256 startTime;
         uint256 endTime;
         uint256 ticketPrice;
+        uint256 remainingFree;
         uint256 discountDivisor;
         uint8 numBrackets;
         uint16[] rewardPortions; // index: no. of matching numbers; e.g. 0: no matching numbers
@@ -124,6 +126,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         uint256 startTime,
         uint256 endTime,
         uint256 ticketPrice,
+        uint256 remainingFree,
         uint256 firstTicketId,
         uint8 numBrackets,
         uint256 injectedAmount
@@ -223,7 +226,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     {
         uint256 numTicketNumbers = _ticketNumbers.length;
         require(numTicketNumbers != 0, "No ticket specified");
-        require(numTicketNumbers <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
+        requireTicketsNotTooMany(numTicketNumbers);
 
         requireOpen(_lotteryId);
         Lottery memory lottery = _lotteries[_lotteryId];
@@ -232,8 +235,25 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         }
 
         // Calculate cost of tickets
-        uint256 amountToTransfer =
-            _calculateTotalPriceForBulkTickets(lottery.discountDivisor, lottery.ticketPrice, numTicketNumbers);
+        uint256 remainingFree = lottery.remainingFree;
+        uint256 amountToTransfer;
+        if (remainingFree == 0) {
+            amountToTransfer =
+                _calculateTotalPriceForBulkTickets(lottery.discountDivisor, lottery.ticketPrice, numTicketNumbers);
+        } else {
+            if (remainingFree > numTicketNumbers) {
+                amountToTransfer = 0;
+                _lotteries[_lotteryId].remainingFree = remainingFree - numTicketNumbers;
+            } else if (remainingFree == numTicketNumbers) {
+                amountToTransfer = 0;
+                _lotteries[_lotteryId].remainingFree = 0;
+            } else {
+                amountToTransfer = _calculateTotalPriceForBulkTickets(
+                    lottery.discountDivisor, lottery.ticketPrice, numTicketNumbers - remainingFree
+                );
+                _lotteries[_lotteryId].remainingFree = 0;
+            }
+        }
         demand(msg.value, amountToTransfer);
 
         uint8 numBrackets = lottery.numBrackets;
@@ -281,7 +301,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     {
         uint256 numTicketIds = ticketIds.length;
         require(numTicketIds != 0, "Length must be >0");
-        require(numTicketIds <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
+        requireTicketsNotTooMany(numTicketIds);
         require(numTicketIds == lotteryIds.length, "Lengths must match");
 
         // Setup
@@ -510,6 +530,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
      * @param _ticketPriceInUsd: price of a ticket in USD
+     * @param initialFree: initial number of free tickets
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _winnersPortion: winners portion (10,000 = 100%, 100 = 1%)
      * @param _burnPortion: burn portion (10,000 = 100%, 100 = 1%)
@@ -518,6 +539,7 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
     function startLottery(
         uint256 _endTime,
         uint256 _ticketPriceInUsd,
+        uint256 initialFree,
         uint256 _discountDivisor,
         uint16 _winnersPortion,
         uint16 _burnPortion,
@@ -541,6 +563,9 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
 
         requireValidPortions("winners & burn", _winnersPortion + _burnPortion);
 
+        // Convert price to crypto
+        uint256 ticketPrice = dataFeed.convertUsdCrypto(_ticketPriceInUsd);
+
         // Init Reward Portions
         uint8 numBrackets;
         {
@@ -548,40 +573,42 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
             requireValidPortionsLen(uncheckedNumBrackets);
             numBrackets = uint8(uncheckedNumBrackets);
         }
-        (
-            uint16[] memory rewardPortions,
-            uint256[] memory rewardPerUserPerBracket,
-            uint256[] memory countWinnersPerBracket
-        ) = initRewardPortions(_rewardPortions, numBrackets);
 
-        // Convert price to crypto
-        uint256 ticketPrice = dataFeed.convertUsdCrypto(_ticketPriceInUsd);
         // Commit
         currentLotteryId++;
 
-        _lotteries[currentLotteryId] = Lottery({
-            status: Status.Open,
-            startTime: block.timestamp,
-            endTime: _endTime,
-            ticketPrice: ticketPrice,
-            discountDivisor: _discountDivisor,
-            winnersPortion: _winnersPortion,
-            burnPortion: _burnPortion,
-            numBrackets: numBrackets,
-            rewardPortions: rewardPortions,
-            rewardPerUserPerBracket: rewardPerUserPerBracket,
-            countWinnersPerBracket: countWinnersPerBracket,
-            firstTicketId: currentTicketId,
-            firstTicketIdNextLottery: currentTicketId,
-            amountCollected: pendingInjectionNextLottery,
-            finalNumber: 0
-        });
+        {
+            (
+                uint16[] memory rewardPortions,
+                uint256[] memory rewardPerUserPerBracket,
+                uint256[] memory countWinnersPerBracket
+            ) = initRewardPortions(_rewardPortions, numBrackets);
+            _lotteries[currentLotteryId] = Lottery({
+                status: Status.Open,
+                startTime: block.timestamp,
+                endTime: _endTime,
+                ticketPrice: ticketPrice,
+                remainingFree: initialFree,
+                discountDivisor: _discountDivisor,
+                winnersPortion: _winnersPortion,
+                burnPortion: _burnPortion,
+                numBrackets: numBrackets,
+                rewardPortions: rewardPortions,
+                rewardPerUserPerBracket: rewardPerUserPerBracket,
+                countWinnersPerBracket: countWinnersPerBracket,
+                firstTicketId: currentTicketId,
+                firstTicketIdNextLottery: currentTicketId,
+                amountCollected: pendingInjectionNextLottery,
+                finalNumber: 0
+            });
+        }
 
         emit LotteryOpen(
             currentLotteryId,
             block.timestamp,
             _endTime,
             ticketPrice,
+            initialFree,
             currentTicketId,
             numBrackets,
             pendingInjectionNextLottery
@@ -640,6 +667,16 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         }
     }
 
+    function ticketsTooMany(uint256 numTickets) internal view returns (bool) {
+        return numTickets > maxNumberTicketsPerBuyOrClaim;
+    }
+
+    function requireTicketsNotTooMany(uint256 numTickets) internal view {
+        if (ticketsTooMany(numTickets)) {
+            revert TooManyTickets();
+        }
+    }
+
     function ticketIdIsValid(uint256 lotteryId, uint256 ticketId) internal view returns (bool) {
         return (ticketId >= _lotteries[lotteryId].firstTicketId)
             && (ticketId < _lotteries[lotteryId].firstTicketIdNextLottery);
@@ -692,6 +729,9 @@ contract IndexedSSLottery is ISSLottery, ReentrancyGuard, ContractControlConsume
         pure
         returns (uint256)
     {
+        if (_numberTickets == 0) {
+            return 0;
+        }
         return (_ticketPrice * _numberTickets * (_discountDivisor + 1 - _numberTickets)) / _discountDivisor;
     }
 }

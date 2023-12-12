@@ -21,4 +21,5 @@ export const startLottery_config = {
   burnPortion: "8000",
   rewardPortions: ["1000", "1125", "1250", "1375", "1625", "2625"], // allWinners get 1000
   ticketPriceInUsd: 0n,
+  initialFree: 100n,
 };

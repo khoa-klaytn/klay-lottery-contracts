@@ -1,10 +1,10 @@
 import "@nomicfoundation/hardhat-ethers";
 import { expect } from "chai";
 import { contracts, startLottery_config } from "../../globals";
-import { EndTime, catchCustomErr, depositPrepayment, findEvent, readContract, sendFn } from "../../helpers";
+import { EndTime, catchCustomErr, depositPrepayment, findEvent, readContract, sendFn, sleep } from "../../helpers";
 import { claimTickets, getTicketIds, stepSSLottery } from "../helpers";
 
-describe("Basic Flow", () => {
+describe.only("Basic Flow", () => {
   // ----- //
   // Setup //
   // ----- //
@@ -33,6 +33,7 @@ describe("Basic Flow", () => {
       [
         endTime,
         startLottery_config.ticketPriceInUsd,
+        startLottery_config.initialFree,
         startLottery_config.discountDivisor,
         startLottery_config.winnersPortion,
         startLottery_config.burnPortion,
@@ -44,6 +45,11 @@ describe("Basic Flow", () => {
     const prevLotteryId = lottery_id;
     lottery_id = lotteryOpenEvent.args[0];
     expect(lottery_id).to.equal(prevLotteryId + 1n, "Lottery ID should increment by 1");
+  });
+
+  it("Initial tickets should be free", async () => {
+    const value = await contracts.SSLottery.calculateCurrentTotalPriceForBulkTickets(startLottery_config.initialFree);
+    expect(value).to.equal(0n, "Tickets should be free");
   });
 
   it("Bob buys 1 ticket", async () => {
@@ -76,6 +82,7 @@ describe("Basic Flow", () => {
   });
 
   it("Operator draws final number", async () => {
+    await sleep(1000);
     await sendFn(["operator", "SSLottery", "drawFinalNumberAndMakeLotteryClaimable", [lottery_id, true]]).catch(
       catchCustomErr("SSLottery")
     );

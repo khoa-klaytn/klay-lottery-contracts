@@ -20,6 +20,7 @@ describe("startLottery", () => {
         [
           endTime,
           startLottery_config.ticketPriceInUsd,
+          startLottery_config.initialFree,
           startLottery_config.discountDivisor,
           startLottery_config.winnersPortion,
           startLottery_config.burnPortion,
@@ -41,6 +42,7 @@ describe("startLottery", () => {
         [
           endTime,
           startLottery_config.ticketPriceInUsd,
+          startLottery_config.initialFree,
           startLottery_config.discountDivisor,
           startLottery_config.winnersPortion,
           startLottery_config.burnPortion,
@@ -62,6 +64,7 @@ describe("startLottery", () => {
         [
           endTime,
           startLottery_config.ticketPriceInUsd,
+          startLottery_config.initialFree,
           startLottery_config.discountDivisor,
           startLottery_config.winnersPortion,
           startLottery_config.burnPortion,
@@ -83,6 +86,7 @@ describe("startLottery", () => {
         [
           endTime,
           startLottery_config.ticketPriceInUsd,
+          startLottery_config.initialFree,
           startLottery_config.discountDivisor,
           startLottery_config.winnersPortion,
           startLottery_config.burnPortion,

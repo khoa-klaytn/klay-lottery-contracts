@@ -88,18 +88,26 @@ contract SSLottery is IndexedSSLottery {
      */
     function calculateTotalPriceForBulkTickets(uint256 _discountDivisor, uint256 _ticketPrice, uint256 _numberTickets)
         public
-        pure
+        view
         returns (uint256)
     {
         require(_discountDivisor >= MIN_DISCOUNT_DIVISOR, "Must be >= MIN_DISCOUNT_DIVISOR");
-        require(_numberTickets != 0, "Number of tickets must be > 0");
+        requireTicketsNotTooMany(_numberTickets);
 
         return _calculateTotalPriceForBulkTickets(_discountDivisor, _ticketPrice, _numberTickets);
     }
 
+    function calcNumNonFree(uint256 numTickets, uint256 remainingFree) internal pure returns (uint256) {
+        if (numTickets > remainingFree) {
+            return numTickets - remainingFree;
+        }
+        return 0;
+    }
+
     function calculateCurrentTotalPriceForBulkTickets(uint256 _numberTickets) public view returns (uint256) {
+        Lottery memory lottery = _lotteries[currentLotteryId];
         return calculateTotalPriceForBulkTickets(
-            _lotteries[currentLotteryId].discountDivisor, _lotteries[currentLotteryId].ticketPrice, _numberTickets
+            lottery.discountDivisor, lottery.ticketPrice, calcNumNonFree(_numberTickets, lottery.remainingFree)
         );
     }
 
